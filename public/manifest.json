@@ -1,0 +1,16 @@
+{
+  "name": "Agromia",
+  "short_name": "Agromia",
+  "description": "Gestisci il tuo orto con dashboard, raccolti e costi.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5eedc",
+  "theme_color": "#245e3e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
