@@ -5,9 +5,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { crops } from '@/lib/crops';
-import { type CropState, getAllCropStates } from '@/lib/gardenStorage';
 import { getMoonPhase } from '@/lib/moon';
 import TodayPriorityBox from '@/components/dashboard/TodayPriorityBox';
+import { getUserCrops, type Crop } from '@/lib/cropService';
+import { useAuth } from '@/lib/auth-context';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('it-IT', {
@@ -18,39 +19,64 @@ function formatCurrency(value: number) {
 }
 
 export default function DashboardPage() {
-  const [states, setStates] = useState<CropState[]>([]);
+  const [cropsData, setCropsData] = useState<Crop[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const moon = useMemo(() => getMoonPhase(), []);
+  const { user } = useAuth();
+
+  const loadCrops = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const crops = await getUserCrops();
+      setCropsData(crops);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Errore nel caricamento delle colture');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setIsMounted(true);
-    setStates(getAllCropStates());
-  }, []);
+    if (user) {
+      loadCrops();
+    } else {
+      setLoading(false);
+      setIsMounted(true);
+    }
+  }, [user]);
 
   const totalPlants = useMemo(
-    () => states.reduce((sum, item) => sum + item.plants, 0),
-    [states]
+    () => cropsData.reduce((sum, crop) => sum + crop.plants, 0),
+    [cropsData]
   );
 
+  // For now, we'll use estimated values based on crop type
+  // In a real app, you'd store the crop type in the database
   const totalEstimatedMin = useMemo(
-    () => states.reduce((sum, item) => sum + item.plants * crops[item.key].yieldMin, 0),
-    [states]
+    () => cropsData.reduce((sum, crop) => {
+      // This is a simplified calculation - you'd need to store crop type in DB
+      const estimatedYield = 3; // Average yield for calculation
+      return sum + crop.plants * estimatedYield;
+    }, 0),
+    [cropsData]
   );
 
   const totalEstimatedMax = useMemo(
-    () => states.reduce((sum, item) => sum + item.plants * crops[item.key].yieldMax, 0),
-    [states]
+    () => cropsData.reduce((sum, crop) => {
+      const estimatedYield = 6; // Average yield for calculation
+      return sum + crop.plants * estimatedYield;
+    }, 0),
+    [cropsData]
   );
 
-  const totalRealProduction = useMemo(
-    () => states.reduce((sum, item) => sum + item.harvests.reduce((sub, harvest) => sub + harvest.quantity_kg, 0), 0),
-    [states]
-  );
+  // For now, real production is 0 since we don't have harvest data in DB yet
+  const totalRealProduction = 0;
 
-  const totalCosts = useMemo(
-    () => states.reduce((sum, item) => sum + item.costs.reduce((sub, cost) => sub + cost.amount, 0), 0),
-    [states]
-  );
+  // For now, costs are 0 since we don't have cost data in DB yet
+  const totalCosts = 0;
 
   if (!isMounted) {
     return (
@@ -62,8 +88,25 @@ export default function DashboardPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 py-10 sm:px-6 lg:px-10">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center shadow-sm">
+          <h2 className="text-xl font-semibold text-red-900">Errore</h2>
+          <p className="mt-2 text-red-700">{error}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="mt-4"
+          >
+            Riprova
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Empty state: no crops
-  if (states.length === 0) {
+  if (cropsData.length === 0 && !loading) {
     return (
       <div className="space-y-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -80,11 +123,11 @@ export default function DashboardPage() {
           <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
             <h2 className="text-2xl font-semibold text-slate-900">Benvenuto in Agromia 🌱</h2>
             <p className="mt-4 text-slate-600">Inizia aggiungendo la tua prima coltura e scopri cosa fare ogni giorno nel tuo orto.</p>
-            
+
             <Link href="/add-crop">
               <Button className="mt-6 w-full px-6 py-3 text-base">➕ Aggiungi la tua prima coltura</Button>
             </Link>
-            
+
             <p className="mt-4 text-sm text-slate-500">Esempio: Pomodoro, Zucchine, Insalata</p>
           </div>
         </div>
@@ -124,23 +167,21 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          {Object.keys(crops).map((key) => {
-            const cropKey = key as keyof typeof crops;
-            const config = crops[cropKey];
-            const state = states.find((item) => item.key === cropKey);
-            const plants = state?.plants ?? 0;
-            const estimatedMin = plants * config.yieldMin;
-            const estimatedMax = plants * config.yieldMax;
-            const real = state?.harvests.reduce((sum, item) => sum + item.quantity_kg, 0) ?? 0;
+          {cropsData.map((crop) => {
+            // For now, we'll use a simplified calculation
+            // In a real app, you'd store the crop type in the database
+            const estimatedMin = crop.plants * 3; // Simplified calculation
+            const estimatedMax = crop.plants * 6; // Simplified calculation
+            const real = 0; // No harvest data in DB yet
 
             return (
-              <div key={key} className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+              <div key={crop.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-slate-500">{config.name}</p>
-                    <p className="mt-2 text-lg font-semibold text-slate-900">{plants} piante</p>
+                    <p className="text-sm uppercase tracking-[0.3em] text-slate-500">{crop.name}</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">{crop.plants} piante</p>
                   </div>
-                  <Link href={`/crop/${cropKey}`} className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20">
+                  <Link href={`/crop/${crop.id}`} className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20">
                     Apri
                   </Link>
                 </div>
