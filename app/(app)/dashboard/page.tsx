@@ -194,6 +194,7 @@ export default function DashboardPage() {
       <TodayPriorityBox 
         moonLabel={moon.label}
         isGrowingMoon={moon.isGrowing}
+        crops={cropsData}
       />
 
       <section className="rounded-3xl border border-olive/15 bg-white p-6 shadow-sm">

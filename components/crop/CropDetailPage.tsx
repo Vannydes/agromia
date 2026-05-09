@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatKg, formatCurrency } from '@/lib/formatting';
 import { getCurrentWeather, type Weather } from '@/lib/weather';
-import { getAdvice } from '@/lib/advice';
-import { getSmartSuggestions } from '@/lib/rulesEngine';
+import { generateCropAgronomicTasks, type AgronomicTask } from '@/lib/agronomic-engine';
 import { useAuth } from '@/lib/auth-context';
 import { getCropById, deleteCrop } from '@/lib/cropService';
 import { crops } from '@/lib/crops';
@@ -166,6 +165,19 @@ export default function CropPage() {
   const revenue = useMemo(() => Number(totalKg) * Number(crop?.pricePerKg ?? 2.5), [totalKg, crop]);
   const profit = useMemo(() => Number(revenue) - Number(totalCosts), [revenue, totalCosts]);
 
+  const tasks = useMemo(() => {
+    if (!crop || !weather) return [];
+    return generateCropAgronomicTasks(crop, weather);
+  }, [crop, weather]);
+
+  const borderClasses: Record<AgronomicTask['color'], string> = {
+    red: 'border-red-200 bg-red-50',
+    orange: 'border-orange-200 bg-orange-50',
+    yellow: 'border-yellow-200 bg-yellow-50',
+    blue: 'border-sky-200 bg-sky-50',
+    green: 'border-emerald-200 bg-emerald-50',
+  };
+
   const allEvents = useMemo(() => {
     if (!crop) return [];
 
@@ -183,11 +195,6 @@ export default function CropPage() {
     });
 
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [crop]);
-
-  const suggestions = useMemo(() => {
-    if (!crop) return [];
-    return getSmartSuggestions(crop.name, crop.events || []);
   }, [crop]);
 
   const handleAddHarvest = (event: React.FormEvent<HTMLFormElement>) => {
@@ -380,62 +387,47 @@ export default function CropPage() {
           </div>
         </section>
 
-        {(() => {
-          if (weatherLoading || !weather) {
-            return (
-              <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-                <h2 className="text-xl font-semibold text-slate-900">Consiglio di oggi</h2>
-                <div className="mt-6 flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <span className="text-2xl">⏳</span>
-                    <p className="mt-2 text-sm text-slate-600">Caricamento dati meteo...</p>
-                  </div>
-                </div>
-              </div>
-            );
-          }
+        <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+          <h2 className="text-xl font-semibold text-slate-900">Attività consigliate</h2>
 
-          const advice = getAdvice(crop, weather);
-          return (
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-              <h2 className="text-xl font-semibold text-slate-900">Consiglio di oggi</h2>
-              <div className="mt-6 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-olive/5 p-5 transition hover:bg-olive/8">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-medium">Temperatura</p>
-                    <p className="mt-3 text-lg font-semibold text-slate-900">{weather.temp}°C</p>
-                  </div>
-                  <div className="rounded-2xl bg-olive/5 p-5 transition hover:bg-olive/8">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-medium">Umidità</p>
-                    <p className="mt-3 text-lg font-semibold text-slate-900">{weather.humidity}%</p>
-                  </div>
-                  <div className="rounded-2xl bg-olive/5 p-5 transition hover:bg-olive/8">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-medium">Vento</p>
-                    <p className="mt-3 text-lg font-semibold text-slate-900">{weather.wind} km/h</p>
-                  </div>
-                </div>
-                <div className="rounded-2xl border-l-4 border-olive bg-olive/5 p-5">
-                  <p className="text-sm text-slate-700">{advice}</p>
-                </div>
+          <div className="mt-6 space-y-6">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl bg-olive/5 p-5 transition hover:bg-olive/8">
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-medium">Temperatura</p>
+                <p className="mt-3 text-lg font-semibold text-slate-900">{weather ? `${weather.temp}°C` : '—'}</p>
+              </div>
+              <div className="rounded-2xl bg-olive/5 p-5 transition hover:bg-olive/8">
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-medium">Umidità</p>
+                <p className="mt-3 text-lg font-semibold text-slate-900">{weather ? `${weather.humidity}%` : '—'}</p>
+              </div>
+              <div className="rounded-2xl bg-olive/5 p-5 transition hover:bg-olive/8">
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-medium">Vento</p>
+                <p className="mt-3 text-lg font-semibold text-slate-900">{weather ? `${weather.wind} km/h` : '—'}</p>
               </div>
             </div>
-          );
-        })()}
 
-        <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-          <h2 className="text-xl font-semibold text-slate-900">Cosa fare oggi</h2>
-          <div className="mt-6 space-y-4">
-            {suggestions.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-                Nessuna attività urgente oggi
+            {weatherLoading && !weather && tasks.length === 0 ? (
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+                ⏳ Caricamento delle attività consigliate...
+              </div>
+            ) : tasks.length > 0 ? (
+              <div className="grid gap-4">
+                {tasks.map((task) => (
+                  <div key={task.id} className={`rounded-3xl border p-4 shadow-sm ${borderClasses[task.color]}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl shrink-0">{task.icon}</div>
+                      <div>
+                        <p className="font-semibold text-slate-900">{task.title}</p>
+                        <p className="mt-1 text-sm text-slate-600">{task.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
-              suggestions.map((suggestion, index) => (
-                <div key={index} className="rounded-2xl border-l-4 border-green-500 bg-green-50 p-5 shadow-sm">
-                  <p className="text-sm font-medium text-slate-800">{suggestion.message}</p>
-                  <p className="mt-2 text-xs text-slate-600">Giorno {suggestion.days} dall&apos;evento</p>
-                </div>
-              ))
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
+                Nessuna attività urgente oggi.
+              </div>
             )}
           </div>
         </div>

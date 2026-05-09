@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cropOptions, getAllCropOptions } from '@/lib/crops';
 import { createCrop, getUserCustomCrops, createCustomCrop, type CustomCrop } from '@/lib/cropService';
+import { setCropTransplantDate } from '@/lib/gardenStorage';
 
 export default function AddCropPage() {
   const router = useRouter();
@@ -86,6 +87,12 @@ export default function AddCropPage() {
         plants: normalizedPlants,
         custom_crop_id: customCropId,
       });
+
+      // Salva data trapianto se fornita
+      if (transplantDate) {
+        console.log('[AddCrop] Saving transplant date:', transplantDate, 'for crop:', cropKey);
+        setCropTransplantDate(cropKey as any, transplantDate);
+      }
 
       console.log('[AddCrop] Crop created successfully, navigating to dashboard');
       router.push('/dashboard');
