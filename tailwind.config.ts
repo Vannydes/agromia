@@ -5,13 +5,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        olive: '#245e3e',
-        beige: '#f5eedc',
-        soft: '#8b8b8b'
-      }
-    }
+        olive: 'var(--accent-olive)',
+        beige: 'var(--bg-primary)',
+        soft: 'var(--text-muted)',
+        card: 'var(--bg-card)',
+        surface: 'var(--bg-surface)',
+        primary: 'var(--text-primary)',
+        muted: 'var(--text-muted)',
+        border: 'var(--border-color)',
+        accent: {
+          green: 'var(--accent-green)',
+        },
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };
 
 export default config;

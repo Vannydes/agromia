@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { crops } from '@/lib/crops';
 import { getMoonPhase } from '@/lib/moon';
 import TodayPriorityBox from '@/components/dashboard/TodayPriorityBox';
+import { createFeedback } from '@/lib/feedbackService';
 import { getUserCrops, type Crop } from '@/lib/cropService';
 import { useAuth } from '@/lib/auth-context';
 
@@ -27,6 +27,47 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
 
   const router = useRouter();
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
+
+  const openFeedback = () => {
+    setFeedbackError(null);
+    setFeedbackMessage('');
+    setIsFeedbackOpen(true);
+  };
+
+  const closeFeedback = () => {
+    setFeedbackError(null);
+    setIsFeedbackOpen(false);
+  };
+
+  const handleSubmitFeedback = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedMessage = feedbackMessage.trim();
+
+    if (!trimmedMessage) {
+      setFeedbackError('Inserisci il tuo suggerimento prima di inviare.');
+      return;
+    }
+
+    try {
+      setFeedbackLoading(true);
+      setFeedbackError(null);
+      await createFeedback(trimmedMessage);
+      setFeedbackSuccess('Grazie! Il tuo suggerimento è stato inviato.');
+      setFeedbackMessage('');
+      closeFeedback();
+      window.setTimeout(() => setFeedbackSuccess(null), 7000);
+    } catch (err) {
+      console.error('[Dashboard] Feedback submit error:', err);
+      setFeedbackError('Impossibile inviare il suggerimento. Riprova più tardi.');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
 
   const loadCrops = async () => {
     console.log('[Dashboard] 🚀 Starting crop load');
@@ -151,7 +192,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex min-h-[400px] flex-col gap-4 items-center justify-center md:flex-row">
           <div className="max-w-md rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
             <h2 className="text-2xl font-semibold text-slate-900">Benvenuto in Agromia 🌱</h2>
             <p className="mt-4 text-slate-600">Inizia aggiungendo la tua prima coltura e scopri cosa fare ogni giorno nel tuo orto.</p>
@@ -161,6 +202,24 @@ export default function DashboardPage() {
             </Link>
 
             <p className="mt-4 text-sm text-slate-500">Esempio: Pomodoro, Zucchine, Insalata</p>
+          </div>
+
+          <div className="w-full rounded-3xl border border-olive/15 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="max-w-xl">
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-700">
+                  💡 Aiutaci a migliorare Agromia
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">Agromia è in beta.</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  I tuoi suggerimenti ci aiutano a costruire uno strumento realmente utile per chi coltiva.
+                </p>
+              </div>
+
+              <div className="flex items-center sm:justify-end">
+                <Button onClick={openFeedback} className="w-full max-w-xs">Invia suggerimento</Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -196,6 +255,30 @@ export default function DashboardPage() {
         isGrowingMoon={moon.isGrowing}
         crops={cropsData}
       />
+
+      {feedbackSuccess ? (
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm">
+          {feedbackSuccess}
+        </div>
+      ) : null}
+
+      <section className="rounded-3xl border border-olive/15 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-700">
+              💡 Aiutaci a migliorare Agromia
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Agromia è in beta.</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              I tuoi suggerimenti ci aiutano a costruire uno strumento realmente utile per chi coltiva.
+            </p>
+          </div>
+
+          <div className="flex items-center sm:justify-end">
+            <Button onClick={openFeedback} className="w-full max-w-xs">Invia suggerimento</Button>
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-3xl border border-olive/15 bg-white p-6 shadow-sm">
         <div className="mb-4">
@@ -242,6 +325,52 @@ export default function DashboardPage() {
           })}
         </div>
       </section>
+
+      {isFeedbackOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6 sm:px-6">
+          <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Invia un suggerimento</h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Hai idee, problemi o funzioni che vorresti vedere in Agromia?
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeFeedback}
+                className="rounded-full bg-slate-100 px-3 py-2 text-slate-600 transition hover:bg-slate-200"
+                aria-label="Chiudi"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form className="mt-6 space-y-4" onSubmit={handleSubmitFeedback}>
+              <label className="block">
+                <span className="text-sm font-medium text-slate-700">Descrizione</span>
+                <textarea
+                  value={feedbackMessage}
+                  onChange={(event) => setFeedbackMessage(event.target.value)}
+                  placeholder="Hai idee, problemi o funzioni che vorresti vedere in Agromia?"
+                  className="mt-2 min-h-[160px] w-full rounded-3xl border border-slate-300 bg-white px-4 py-4 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20"
+                />
+              </label>
+
+              {feedbackError ? (
+                <p className="text-sm text-rose-700">{feedbackError}</p>
+              ) : null}
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-slate-500">I tuoi feedback rendono Agromia più utile per tutti.</p>
+                <Button type="submit" disabled={feedbackLoading} className="w-full sm:w-auto">
+                  {feedbackLoading ? 'Invio in corso…' : 'Invia suggerimento'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

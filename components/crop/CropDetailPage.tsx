@@ -425,8 +425,8 @@ export default function CropPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-                Nessuna attività urgente oggi.
+              <div className="rounded-3xl border border-card bg-card p-5 text-sm text-muted">
+                Oggi l’orto non richiede interventi urgenti. Ottimo lavoro 🌱
               </div>
             )}
           </div>
@@ -511,8 +511,8 @@ export default function CropPage() {
               <h3 className="text-xl font-semibold text-slate-900">Storico raccolti</h3>
               <div className="mt-6 space-y-3">
                 {crop.harvests.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                    Nessun raccolto registrato.
+                  <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
+                    Non hai ancora raccolto nulla? Quando raccogli i primi frutti, registrali qui.
                   </div>
                 ) : (
                   crop.harvests.map((harvest, index) => (
@@ -531,8 +531,8 @@ export default function CropPage() {
               <h3 className="text-xl font-semibold text-slate-900">Costi</h3>
               <div className="mt-6 space-y-3">
                 {crop.costs.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                    Nessun costo registrato.
+                  <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
+                    Nessun costo registrato. Semi, concimi e materiali appariranno qui.
                   </div>
                 ) : (
                   crop.costs.map((cost, index) => (
@@ -582,8 +582,8 @@ export default function CropPage() {
               <h3 className="text-xl font-semibold text-slate-900">Timeline</h3>
               <div className="mt-6 space-y-3">
                 {allEvents.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-                    Nessuna attività registrata.
+                  <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
+                    La tua timeline è vuota. Ogni attività dell’orto verrà salvata qui.
                   </div>
                 ) : (
                   allEvents.map((event, index) => (

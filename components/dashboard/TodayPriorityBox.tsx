@@ -146,8 +146,8 @@ export default function TodayPriorityBox({ moonLabel, isGrowingMoon, crops }: Pr
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              Nessuna attività urgente oggi.
+            <div className="rounded-3xl border border-card bg-card p-4 text-sm text-muted">
+              Oggi l’orto non richiede interventi urgenti. Ottimo lavoro 🌱
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@ import type { CostItem } from '@/lib/mockCrops';
 
 export function CostList({ costs }: { costs: CostItem[] }) {
   if (costs.length === 0) {
-    return <p className="rounded-[1.75rem] bg-slate-50 p-6 text-sm text-slate-600">Nessun costo registrato.</p>;
+    return <p className="rounded-[1.75rem] border border-card bg-card p-6 text-sm text-muted">Nessun costo registrato. Semi, concimi e materiali appariranno qui.</p>;
   }
 
   return (

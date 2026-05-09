@@ -10,7 +10,7 @@ export function ActivityList({ activities }: { activities: Activity[] }) {
   const ordered = [...activities].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   if (ordered.length === 0) {
-    return <p className="rounded-[1.75rem] bg-slate-50 p-6 text-sm text-slate-600">Nessuna attività ancora registrata.</p>;
+    return <p className="rounded-[1.75rem] border border-card bg-card p-6 text-sm text-muted">Nessuna attività salvata. Aggiungi irrigazioni, trattamenti o manutenzioni.</p>;
   }
 
   return (

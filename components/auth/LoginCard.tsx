@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -12,41 +12,35 @@ export function LoginCard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { signIn } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    if (!email.trim() || !password) {
+      setError('Inserisci email e password per accedere.');
+      setLoading(false);
+      return;
+    }
+
+    console.log('[Login] start', { email });
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error: signInError } = await signIn(email.trim(), password);
 
-      if (error) {
-        setError(error.message);
+      if (signInError) {
+        setError(signInError);
+        console.error('[Login] error', signInError);
         return;
       }
 
-      const session = data?.session;
-      const user = session?.user;
-
-      if (!session || !user) {
-        setError('Impossibile autenticare. Controlla email e password o conferma il tuo account.');
-        return;
-      }
-
-      // Ensure the client session is persisted before redirecting
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData?.session?.user) {
-        setError('Errore nel recupero della sessione. Riprova.');
-        return;
-      }
-
+      console.log('[Login] success', { email });
       router.push('/dashboard');
     } catch (err) {
-      setError('Si è verificato un errore durante il login');
+      console.error('[Login] exception', err);
+      setError('Si è verificato un errore durante il login. Riprova più tardi.');
     } finally {
       setLoading(false);
     }
