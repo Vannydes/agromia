@@ -1,9 +1,9 @@
 'use client';
 
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 type AuthContextType = {
   user: User | null;
@@ -20,22 +20,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const supabase = createClient();
+  const supabaseClient = useMemo(() => supabase, []);
 
   useEffect(() => {
-    // Get initial session
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const initializeAuth = async () => {
+      const {
+        data: { session },
+        error,
+      } = await supabaseClient.auth.getSession();
+
+      if (error) {
+        console.error('Supabase auth init error:', error.message);
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     };
 
-    getSession();
+    initializeAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -43,17 +49,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  }, [supabaseClient]);
 
   const signOut = async () => {
-    // Sign out from Supabase - destroys session
-    await supabase.auth.signOut();
-    
-    // Clear local state
+    setLoading(true);
+    await supabaseClient.auth.signOut();
     setUser(null);
     setSession(null);
-    
-    // Redirect to home page
+    setLoading(false);
     router.push('/');
   };
 

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getWeatherFromGeolocation, getAgriculturalAdvice, type WeatherData } from '@/lib/weather-api';
+import { getCurrentWeather, type Weather } from '@/lib/weather';
+import { getAgriculturalAdvice } from '@/lib/weather-api';
 
 type Props = {
   moonLabel: string;
@@ -16,23 +17,47 @@ type Props = {
  * - Agricultural advice based on weather and moon phase
  */
 export default function TodayPriorityBox({ moonLabel, isGrowingMoon }: Props) {
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weather, setWeather] = useState<Weather | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'requesting' | 'granted' | 'denied' | 'fallback'>('requesting');
 
   useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') {
+      console.log('Weather: Skipping server-side execution');
+      return;
+    }
+
+    console.log('Weather: Starting weather data load on dashboard');
+
     // Fetch weather data on component mount
     const loadWeather = async () => {
       try {
-        const weatherData = await getWeatherFromGeolocation();
+        console.log('Weather: Requesting geolocation permission...');
+        setLocationStatus('requesting');
+
+        const weatherData = await getCurrentWeather();
+
         if (weatherData) {
+          console.log('Weather: Successfully loaded weather data:', {
+            temp: weatherData.temp,
+            humidity: weatherData.humidity,
+            wind: weatherData.wind,
+            condition: weatherData.condition,
+            location: weatherData.location
+          });
           setWeather(weatherData);
+          setLocationStatus('granted');
         } else {
+          console.warn('Weather: No weather data available, using fallback');
           setError('Meteo non disponibile');
+          setLocationStatus('fallback');
         }
       } catch (err) {
-        console.error('Error loading weather:', err);
+        console.error('Weather: Error loading weather:', err);
         setError('Errore caricamento meteo');
+        setLocationStatus('denied');
       } finally {
         setLoading(false);
       }
@@ -55,7 +80,7 @@ export default function TodayPriorityBox({ moonLabel, isGrowingMoon }: Props) {
 
   // Get agricultural advice
   const advice = weather
-    ? getAgriculturalAdvice(weather, moonLabel)
+    ? getAgriculturalAdvice({ temperature: weather.temp, humidity: weather.humidity, weatherCode: weather.weatherCode, windSpeed: weather.wind }, moonLabel)
     : '⏳ Caricamento consiglio agricolo...';
 
   return (
@@ -99,10 +124,10 @@ export default function TodayPriorityBox({ moonLabel, isGrowingMoon }: Props) {
             <div className="flex-1">
               <p className="text-sm text-slate-600">Condizioni meteo</p>
               <div className="flex items-baseline gap-2 mt-1">
-                <p className="text-lg font-semibold text-slate-900">{weather.temperature}°C</p>
+                <p className="text-lg font-semibold text-slate-900">{weather.temp}°C</p>
                 <p className="text-sm text-slate-600">Umidità {weather.humidity}%</p>
               </div>
-              <p className="text-sm text-slate-700 mt-1">{weather.weatherDescription}</p>
+              <p className="text-sm text-slate-700 mt-1">{weather.description}</p>
             </div>
           </div>
         )}
@@ -116,7 +141,10 @@ export default function TodayPriorityBox({ moonLabel, isGrowingMoon }: Props) {
         {loading && (
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <span className="animate-spin">⏳</span>
-            Caricamento dati meteo in tempo reale...
+            {locationStatus === 'requesting' && 'Richiesta permesso geolocalizzazione...'}
+            {locationStatus === 'granted' && 'Caricamento dati meteo locali...'}
+            {locationStatus === 'denied' && 'Caricamento dati meteo di Roma...'}
+            {locationStatus === 'fallback' && 'Caricamento dati meteo...'}
           </div>
         )}
 

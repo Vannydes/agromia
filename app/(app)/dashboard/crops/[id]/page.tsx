@@ -1,5 +1,5 @@
 import CropDetailPage from '@/components/crop/CropDetailPage';
 
-export default function CropPage() {
+export default function DashboardCropPage() {
   return <CropDetailPage />;
 }

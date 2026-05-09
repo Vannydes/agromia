@@ -2,14 +2,20 @@ import Link from 'next/link';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   href?: string;
+  variant?: 'default' | 'outline';
   className?: string;
 }
 
 const baseStyles =
-  'inline-flex items-center justify-center rounded-full bg-olive px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60';
+  'inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-sm transition disabled:opacity-60';
 
-export function Button({ href, className = '', children, type = 'button', ...props }: ButtonProps) {
-  const classes = `${baseStyles} ${className}`.trim();
+const variants = {
+  default: 'bg-olive text-white hover:bg-emerald-700',
+  outline: 'border border-slate-300 bg-white text-slate-900 hover:bg-slate-100'
+};
+
+export function Button({ href, variant = 'default', className = '', children, type = 'button', ...props }: ButtonProps) {
+  const classes = `${baseStyles} ${variants[variant]} ${className}`.trim();
 
   if (href) {
     return (

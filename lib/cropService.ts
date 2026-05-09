@@ -1,27 +1,60 @@
 import { supabaseClient } from './supabaseClient';
-import { useAuth } from './auth-context';
 
 export interface Crop {
   id: string;
   user_id: string;
   name: string;
   plants: number;
+  custom_crop_id?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CustomCrop {
+  id: string;
+  user_id: string;
+  name: string;
+  spacing_cm: number;
+  min_yield: number;
+  max_yield: number;
+  created_at: string;
 }
 
 export interface CreateCropData {
   name: string;
   plants: number;
+  custom_crop_id?: string | null;
 }
 
-// Get all crops for the current user
-export async function getUserCrops(): Promise<Crop[]> {
-  const { data: { user } } = await supabaseClient.auth.getUser();
+export interface CreateCustomCropData {
+  name: string;
+  spacing_cm: number;
+  min_yield: number;
+  max_yield: number;
+}
+
+async function getAuthenticatedUser() {
+  const {
+    data: { session },
+    error,
+  } = await supabaseClient.auth.getSession();
+
+  if (error) {
+    throw error;
+  }
+
+  const user = session?.user;
 
   if (!user) {
     throw new Error('User not authenticated');
   }
+
+  return user;
+}
+
+// Get all crops for the current user
+export async function getUserCrops(): Promise<Crop[]> {
+  const user = await getAuthenticatedUser();
 
   const { data, error } = await supabaseClient
     .from('crops')
@@ -36,13 +69,29 @@ export async function getUserCrops(): Promise<Crop[]> {
   return data || [];
 }
 
+export async function getCropById(id: string): Promise<Crop | null> {
+  const user = await getAuthenticatedUser();
+
+  const { data, error } = await supabaseClient
+    .from('crops')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+
+  if (error) {
+    if (typeof error.details === 'string' && error.details.includes('No rows found')) {
+      return null;
+    }
+    throw error;
+  }
+
+  return data;
+}
+
 // Create a new crop
 export async function createCrop(cropData: CreateCropData): Promise<Crop> {
-  const { data: { user } } = await supabaseClient.auth.getUser();
-
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
+  const user = await getAuthenticatedUser();
 
   const { data, error } = await supabaseClient
     .from('crops')
@@ -50,6 +99,7 @@ export async function createCrop(cropData: CreateCropData): Promise<Crop> {
       user_id: user.id,
       name: cropData.name,
       plants: cropData.plants,
+      custom_crop_id: cropData.custom_crop_id,
     })
     .select()
     .single();
@@ -90,4 +140,44 @@ export async function deleteCrop(id: string): Promise<void> {
   if (error) {
     throw error;
   }
+}
+
+// Get all custom crops for the current user
+export async function getUserCustomCrops(): Promise<CustomCrop[]> {
+  const user = await getAuthenticatedUser();
+
+  const { data, error } = await supabaseClient
+    .from('custom_crops')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+}
+
+// Create a new custom crop
+export async function createCustomCrop(cropData: CreateCustomCropData): Promise<CustomCrop> {
+  const user = await getAuthenticatedUser();
+
+  const { data, error } = await supabaseClient
+    .from('custom_crops')
+    .insert({
+      user_id: user.id,
+      name: cropData.name,
+      spacing_cm: cropData.spacing_cm,
+      min_yield: cropData.min_yield,
+      max_yield: cropData.max_yield,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }

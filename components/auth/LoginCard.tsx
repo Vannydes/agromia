@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -12,7 +12,6 @@ export function LoginCard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,16 +19,32 @@ export function LoginCard() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
         setError(error.message);
-      } else {
-        router.push('/dashboard');
+        return;
       }
+
+      const session = data?.session;
+      const user = session?.user;
+
+      if (!session || !user) {
+        setError('Impossibile autenticare. Controlla email e password o conferma il tuo account.');
+        return;
+      }
+
+      // Ensure the client session is persisted before redirecting
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData?.session?.user) {
+        setError('Errore nel recupero della sessione. Riprova.');
+        return;
+      }
+
+      router.push('/dashboard');
     } catch (err) {
       setError('Si è verificato un errore durante il login');
     } finally {

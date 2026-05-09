@@ -18,7 +18,7 @@ export function CropCard({ crop }: { crop: Crop }) {
           <h3 className="mt-2 text-2xl font-semibold text-slate-900">{crop.name}</h3>
         </div>
         <Link
-          href={`/dashboard/crop/${crop.id}`}
+          href={`/dashboard/crops/${crop.id}`}
           className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20"
         >
           Apri

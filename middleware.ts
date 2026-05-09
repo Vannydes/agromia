@@ -29,8 +29,15 @@ export async function middleware(request: NextRequest) {
 
   // Refresh session if expired - required for Server Components
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  const user = session?.user;
+
+  if (error) {
+    console.error('Supabase middleware auth error:', error.message);
+  }
 
   // Protected routes - redirect to login if not authenticated
   const protectedRoutes = ['/dashboard', '/crop/', '/coltura/', '/orto/', '/add-crop'];

@@ -4,6 +4,7 @@
 export type WeatherData = {
   temperature: number;
   humidity: number;
+  windSpeed: number;
   weatherCode: number;
   weatherDescription: string;
   location: string;
@@ -56,7 +57,7 @@ function getWeatherDescription(code: number): string {
 export async function fetchWeatherData(latitude: number, longitude: number): Promise<WeatherData | null> {
   try {
     const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code&temperature_unit=celsius&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
     );
 
     if (!response.ok) {
@@ -74,6 +75,7 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     return {
       temperature: Math.round(current.temperature_2m),
       humidity: current.relative_humidity_2m,
+      windSpeed: Math.round(current.wind_speed_10m),
       weatherCode: current.weather_code,
       weatherDescription: getWeatherDescription(current.weather_code),
       location: `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
@@ -85,30 +87,51 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
 }
 
 /**
- * Get user's geolocation and fetch weather
- * @returns Weather data or null if geolocation is denied
+ * Get weather data for Rome, Italy as fallback
+ * @returns Weather data for Rome
+ */
+export async function getWeatherForRome(): Promise<WeatherData | null> {
+  // Rome coordinates: 41.9028° N, 12.4964° E
+  return await fetchWeatherData(41.9028, 12.4964);
+}
+
+/**
+ * Get user's geolocation and fetch weather, fallback to Rome
+ * @returns Weather data - either from user location or Rome fallback
  */
 export async function getWeatherFromGeolocation(): Promise<WeatherData | null> {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
+    // Check if geolocation is supported
     if (!navigator.geolocation) {
-      console.warn('Geolocation not supported by this browser');
-      resolve(null);
+      console.warn('Weather: Geolocation not supported by this browser, using Rome fallback');
+      const romeWeather = await getWeatherForRome();
+      resolve(romeWeather);
       return;
     }
+
+    console.log('Weather: Requesting geolocation permission from browser...');
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        console.log('Weather: Geolocation permission granted! Coordinates:', { latitude, longitude });
+
         const weatherData = await fetchWeatherData(latitude, longitude);
+        if (weatherData) {
+          console.log('Weather: Successfully fetched weather for user location');
+        }
         resolve(weatherData);
       },
-      (error) => {
-        console.warn('Geolocation error:', error);
-        resolve(null);
+      async (error) => {
+        console.warn('Weather: Geolocation permission denied or failed:', error.message, 'using Rome fallback');
+        const romeWeather = await getWeatherForRome();
+        console.log('Weather: Using Rome, Italy weather data as fallback');
+        resolve(romeWeather);
       },
       {
         timeout: 10000,
         enableHighAccuracy: false,
+        maximumAge: 300000, // Accept cached position up to 5 minutes old
       }
     );
   });
@@ -117,8 +140,8 @@ export async function getWeatherFromGeolocation(): Promise<WeatherData | null> {
 /**
  * Get agricultural advice based on weather conditions
  */
-export function getAgriculturalAdvice(weather: WeatherData, moonPhase: string): string {
-  const { temperature, humidity, weatherCode } = weather;
+export function getAgriculturalAdvice(weather: { temperature: number; humidity: number; weatherCode: number; windSpeed?: number }, moonPhase: string): string {
+  const { temperature, humidity, weatherCode, windSpeed } = weather;
 
   // High humidity - risk of fungal diseases
   if (humidity > 85) {
@@ -147,6 +170,11 @@ export function getAgriculturalAdvice(weather: WeatherData, moonPhase: string): 
     } else {
       return '🌧️ Pioggia - Buono per manutenzione del terreno.';
     }
+  }
+
+  // Strong wind - protect plants
+  if (windSpeed && windSpeed > 20) {
+    return '💨 Vento forte - Proteggi le piante delicate e evita trattamenti.';  
   }
 
   // Clear weather - good for work

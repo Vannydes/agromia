@@ -24,6 +24,13 @@ export function getAdvice(crop: CropConfig | { name: string }, weather: Weather)
     }
   }
 
+  // Wind protection for delicate plants
+  if (weather.wind > 25) {
+    if (cropName.includes('pomodoro') || cropName.includes('peperone') || cropName.includes('melanzana')) {
+      return 'Vento forte: proteggi i fiori e i frutti in formazione.';
+    }
+  }
+
   // Default advice
   return 'Condizioni nella norma.';
 }

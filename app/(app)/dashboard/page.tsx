@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -20,11 +21,12 @@ function formatCurrency(value: number) {
 
 export default function DashboardPage() {
   const [cropsData, setCropsData] = useState<Crop[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const moon = useMemo(() => getMoonPhase(), []);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+
+  const router = useRouter();
 
   const loadCrops = async () => {
     try {
@@ -40,13 +42,17 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (user) {
-      loadCrops();
-    } else {
-      setLoading(false);
-      setIsMounted(true);
+    if (authLoading) {
+      return;
     }
-  }, [user]);
+
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    loadCrops();
+  }, [authLoading, user, router]);
 
   const totalPlants = useMemo(
     () => cropsData.reduce((sum, crop) => sum + crop.plants, 0),
@@ -78,7 +84,7 @@ export default function DashboardPage() {
   // For now, costs are 0 since we don't have cost data in DB yet
   const totalCosts = 0;
 
-  if (!isMounted) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 py-10 sm:px-6 lg:px-10">
         <p className="rounded-3xl border border-slate-200 bg-white px-6 py-5 text-slate-700 shadow-sm">
@@ -179,9 +185,14 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm uppercase tracking-[0.3em] text-slate-500">{crop.name}</p>
+                    {crop.custom_crop_id && (
+                      <span className="inline-block mt-1 px-2 py-1 text-xs bg-olive/10 text-olive rounded-full">
+                        🌱 Personalizzata
+                      </span>
+                    )}
                     <p className="mt-2 text-lg font-semibold text-slate-900">{crop.plants} piante</p>
                   </div>
-                  <Link href={`/crop/${crop.id}`} className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20">
+                  <Link href={`/dashboard/crops/${crop.id}`} className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20">
                     Apri
                   </Link>
                 </div>
