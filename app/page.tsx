@@ -17,8 +17,8 @@ export default function HomePage() {
                 </h1>
               </div>
               <p className="text-lg leading-8 text-slate-600">
-                Agromia: l'app pensata per chi ama la terra. Monitora i tuoi successi, tieni d'occhio i costi e goditi ogni raccolto: tutto quello che serve al tuo orto, in pochi semplici clic.
-              </p>
+  Agromia: l&apos;app pensata per chi ama la terra. Monitora i tuoi successi, tieni d&apos;occhio i costi e goditi ogni raccolto: tutto quello che serve al tuo orto, in pochi semplici clic.
+</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button href="/dashboard">Vai alla dashboard</Button>
                 <Button href="/crop/pomodoro" className="bg-slate-900 hover:bg-slate-800">
