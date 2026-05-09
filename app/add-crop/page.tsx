@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cropOptions, type CropKey, getAllCropOptions, type CropOption } from '@/lib/crops';
+import { cropOptions, getAllCropOptions } from '@/lib/crops';
 import { createCrop, getUserCustomCrops, createCustomCrop, type CustomCrop } from '@/lib/cropService';
 
 export default function AddCropPage() {
@@ -14,15 +14,14 @@ export default function AddCropPage() {
   const [transplantDate, setTransplantDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
   const [customCrops, setCustomCrops] = useState<CustomCrop[]>([]);
-  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [isCreatingCustom, setIsCreatingCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customSpacing, setCustomSpacing] = useState('');
   const [customMinYield, setCustomMinYield] = useState('');
   const [customMaxYield, setCustomMaxYield] = useState('');
-  const [customLoading, setCustomLoading] = useState(false);
 
-  const [customCrops, setCustomCrops] = useState<CustomCrop[]>([]);
   const allCropOptions = getAllCropOptions(customCrops);
 
   useEffect(() => {
@@ -36,39 +35,6 @@ export default function AddCropPage() {
     }
     loadCustomCrops();
   }, []);
-    event.preventDefault();
-    setCustomLoading(true);
-
-    try {
-      const spacing = Number(customSpacing);
-      const minYield = Number(customMinYield);
-      const maxYield = Number(customMaxYield);
-
-      if (!customName.trim()) throw new Error('Nome coltura obbligatorio');
-      if (isNaN(spacing) || spacing <= 0) throw new Error('Spaziatura deve essere un numero positivo');
-      if (isNaN(minYield) || minYield < 0) throw new Error('Produzione minima deve essere un numero non negativo');
-      if (isNaN(maxYield) || maxYield < minYield) throw new Error('Produzione massima deve essere maggiore o uguale alla minima');
-
-      const newCustomCrop = await createCustomCrop({
-        name: customName.trim(),
-        spacing_cm: spacing,
-        min_yield: minYield,
-        max_yield: maxYield,
-      });
-
-      setCustomCrops(prev => [newCustomCrop, ...prev]);
-      setCropKey(`custom-${newCustomCrop.id}`);
-      setShowCustomForm(false);
-      setCustomName('');
-      setCustomSpacing('');
-      setCustomMinYield('');
-      setCustomMaxYield('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore durante il salvataggio della coltura personalizzata');
-    } finally {
-      setCustomLoading(false);
-    }
-  };
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -79,25 +45,70 @@ export default function AddCropPage() {
       const parsedPlants = Number(plants);
       const normalizedPlants = Number.isNaN(parsedPlants) || parsedPlants < 0 ? 0 : parsedPlants;
 
-      const cropOption = allCropOptions.find(option => option.key === cropKey);
-      if (!cropOption) {
-        throw new Error('Coltura non valida');
+      let cropName: string;
+      let customCropId: string | null = null;
+
+      if (isCreatingCustom) {
+        // Validazione campi custom
+        if (!customName.trim()) {
+          throw new Error('Nome coltura obbligatorio');
+        }
+
+        // Creazione custom crop
+        console.log('[AddCrop] Creating custom crop:', customName);
+        const newCustomCrop = await createCustomCrop({
+          name: customName.trim(),
+          spacing_cm: customSpacing ? Number(customSpacing) : 50, // default 50cm
+          min_yield: customMinYield ? Number(customMinYield) : 1, // default 1kg
+          max_yield: customMaxYield ? Number(customMaxYield) : 5, // default 5kg
+        });
+
+        console.log('[AddCrop] Custom crop created:', newCustomCrop.id);
+        cropName = newCustomCrop.name;
+        customCropId = newCustomCrop.id;
+
+        // Aggiorna lista custom crops per refresh immediato
+        setCustomCrops(prev => [newCustomCrop, ...prev]);
+      } else {
+        // Coltura standard
+        const cropOption = allCropOptions.find(option => option.key === cropKey);
+        if (!cropOption) {
+          throw new Error('Coltura non valida');
+        }
+        cropName = cropOption.config.name;
+        customCropId = cropOption.isCustom ? cropOption.key.replace('custom-', '') : null;
       }
 
-      const customCropId = cropOption.isCustom ? cropOption.key.replace('custom-', '') : null;
-
+      // Creazione crop reale
+      console.log('[AddCrop] Creating crop:', cropName, 'with custom_crop_id:', customCropId);
       await createCrop({
-        name: cropOption.config.name,
+        name: cropName,
         plants: normalizedPlants,
         custom_crop_id: customCropId,
       });
 
+      console.log('[AddCrop] Crop created successfully, navigating to dashboard');
       router.push('/dashboard');
     } catch (err) {
+      console.error('[AddCrop] Error saving crop:', err);
       setError(err instanceof Error ? err.message : 'Errore durante il salvataggio');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSwitchToCustom = () => {
+    setIsCreatingCustom(true);
+    setCropKey(''); // Reset select
+  };
+
+  const handleCancelCustom = () => {
+    setIsCreatingCustom(false);
+    setCustomName('');
+    setCustomSpacing('');
+    setCustomMinYield('');
+    setCustomMaxYield('');
+    setCropKey(cropOptions[0]?.key ?? 'pomodoro'); // Reset to first option
   };
 
   return (
@@ -124,93 +135,89 @@ export default function AddCropPage() {
           <form onSubmit={handleSave} className="space-y-6">
             <label className="block space-y-2 text-sm font-medium text-slate-700">
               <span>Coltura</span>
-              <select
-                value={cropKey}
-                onChange={(event) => setCropKey(event.target.value)}
-                disabled={loading}
-                className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
-              >
-                {allCropOptions.map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.config.name}{option.isCustom ? ' 🌱 Personalizzata' : ''}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500 mt-1">
-                Non trovi la tua coltura? Creala manualmente.
-              </p>
-            </label>
-
-            <button
-              type="button"
-              onClick={() => setShowCustomForm(!showCustomForm)}
-              className="text-sm text-olive hover:text-emerald-700 font-medium transition"
-            >
-              + Aggiungi coltura manualmente
-            </button>
-
-            {showCustomForm && (
-              <div className="mt-4 p-4 bg-olive/5 rounded-2xl border border-olive/20">
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Aggiungi coltura personalizzata</h3>
-                <form onSubmit={handleSaveCustomCrop} className="space-y-4">
+              {!isCreatingCustom ? (
+                <>
+                  <select
+                    value={cropKey}
+                    onChange={(event) => setCropKey(event.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
+                  >
+                    {allCropOptions.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.config.name}{option.isCustom ? ' 🌱 Personalizzata' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Non trovi la tua coltura? Creala manualmente.
+                  </p>
+                </>
+              ) : (
+                <div className="space-y-4">
                   <Input
                     label="Nome coltura"
                     type="text"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
-                    disabled={customLoading}
+                    disabled={loading}
                     required
+                    placeholder="es. Basilico, Fragola, Melanzana..."
                   />
-                  <Input
-                    label="Spaziatura (cm)"
-                    type="number"
-                    min="1"
-                    value={customSpacing}
-                    onChange={(e) => setCustomSpacing(e.target.value)}
-                    disabled={customLoading}
-                    required
-                  />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Input
-                      label="Produzione minima stimata per pianta (kg)"
+                      label="Spaziatura (cm)"
+                      type="number"
+                      min="1"
+                      value={customSpacing}
+                      onChange={(e) => setCustomSpacing(e.target.value)}
+                      disabled={loading}
+                      placeholder="50"
+                    />
+                    <Input
+                      label="Prod. min (kg/pianta)"
                       type="number"
                       min="0"
                       step="0.1"
                       value={customMinYield}
                       onChange={(e) => setCustomMinYield(e.target.value)}
-                      disabled={customLoading}
-                      required
+                      disabled={loading}
+                      placeholder="1.0"
                     />
                     <Input
-                      label="Produzione massima stimata per pianta (kg)"
+                      label="Prod. max (kg/pianta)"
                       type="number"
                       min="0"
                       step="0.1"
                       value={customMaxYield}
                       onChange={(e) => setCustomMaxYield(e.target.value)}
-                      disabled={customLoading}
-                      required
+                      disabled={loading}
+                      placeholder="5.0"
                     />
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      disabled={customLoading}
-                      className="flex-1 sm:flex-none"
-                    >
-                      {customLoading ? 'Salvataggio...' : 'Salva coltura'}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => setShowCustomForm(false)}
-                      variant="outline"
-                      className="flex-1 sm:flex-none"
-                    >
-                      Annulla
-                    </Button>
-                  </div>
-                </form>
-              </div>
+                  <p className="text-xs text-slate-500">
+                    Solo il nome è obbligatorio. Gli altri campi sono opzionali e possono essere lasciati vuoti.
+                  </p>
+                </div>
+              )}
+            </label>
+
+            {!isCreatingCustom ? (
+              <button
+                type="button"
+                onClick={handleSwitchToCustom}
+                className="text-sm text-olive hover:text-emerald-700 font-medium transition"
+              >
+                + Aggiungi coltura manualmente
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCancelCustom}
+                className="text-sm text-slate-500 hover:text-slate-700 font-medium transition"
+              >
+                ← Torna alle colture esistenti
+              </button>
             )}
 
             <Input

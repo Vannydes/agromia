@@ -54,39 +54,52 @@ async function getAuthenticatedUser() {
 
 // Get all crops for the current user
 export async function getUserCrops(): Promise<Crop[]> {
+  console.log('[Dashboard] 📊 Fetching crops start');
   const user = await getAuthenticatedUser();
 
-  const { data, error } = await supabaseClient
-    .from('crops')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabaseClient
+      .from('crops')
+      .select('id, user_id, name, plants, custom_crop_id, created_at, updated_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    throw error;
+    if (error) {
+      console.error('[Dashboard] ❌ Error fetching crops:', error);
+      throw error;
+    }
+
+    console.log('[Dashboard] ✅ Crops loaded:', data?.length || 0);
+    return data || [];
+  } catch (err) {
+    console.error('[Dashboard] 💥 Crops fetch exception:', err);
+    throw err;
   }
-
-  return data || [];
 }
 
 export async function getCropById(id: string): Promise<Crop | null> {
   const user = await getAuthenticatedUser();
 
-  const { data, error } = await supabaseClient
-    .from('crops')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single();
+  try {
+    const { data, error } = await supabaseClient
+      .from('crops')
+      .select('id, user_id, name, plants, custom_crop_id, created_at, updated_at')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
 
-  if (error) {
-    if (typeof error.details === 'string' && error.details.includes('No rows found')) {
-      return null;
+    if (error) {
+      if (typeof error.details === 'string' && error.details.includes('No rows found')) {
+        return null;
+      }
+      throw error;
     }
-    throw error;
-  }
 
-  return data;
+    return data;
+  } catch (err) {
+    console.error('[CropService] Error fetching crop by id:', err);
+    throw err;
+  }
 }
 
 // Create a new crop
