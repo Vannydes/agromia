@@ -91,40 +91,58 @@ export default function HomePage() {
         {/* Calculator Section */}
         <Calculator />
 
-        {/* Features Section */}
-        <section className="rounded-[2rem] border border-slate-200 bg-slate-900 p-10 text-white shadow-xl max-w-full overflow-hidden">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-3xl font-bold">Funzionalità</h2>
-              <p className="mt-2 text-slate-300">
-                Tutto quello che serve per gestire un orto professionalmente
+        {/* Emotional Final Section */}
+        <section className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-50 to-green-50 p-10 shadow-xl max-w-full overflow-hidden">
+          <div className="space-y-8">
+            <div className="max-w-2xl">
+              <h2 className="text-4xl font-bold text-slate-900">Coltiva meglio, senza complicarti la giornata</h2>
+              <p className="mt-4 text-lg leading-8 text-slate-700">
+                Agromia nasce per aiutarti a seguire il tuo orto in modo semplice. Meno fogli sparsi, meno calcoli a mano, più tempo per coltivare davvero.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex gap-3">
-                <svg className="h-6 w-6 max-h-6 max-w-6 max-h-6 max-w-6 flex-shrink-0 text-olive" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span className="text-slate-300">Salvataggio automatico in locale</span>
+            
+            <div className="grid gap-6 sm:grid-cols-3">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-emerald-100 text-emerald-700 text-xl">
+                    🌱
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Tieni tutto sotto controllo</h3>
+                  <p className="mt-2 text-sm text-slate-600">Tutte le tue colture, i costi e i raccolti in un unico posto.</p>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <svg className="h-6 w-6 max-h-6 max-w-6 flex-shrink-0 text-olive" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span className="text-slate-300">App offline-first</span>
+              
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-yellow-100 text-yellow-700 text-xl">
+                    ☀️
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Segui meteo e attività</h3>
+                  <p className="mt-2 text-sm text-slate-600">Scopri cosa fare ogni giorno in base al clima e allo stato delle tue piante.</p>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <svg className="h-6 w-6 max-h-6 max-w-6 flex-shrink-0 text-olive" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span className="text-slate-300">Calcoli real-time</span>
+              
+              <div className="flex gap-4">
+                <div className="flex-shrink-0">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-700 text-xl">
+                    📈
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900">Monitora i risultati</h3>
+                  <p className="mt-2 text-sm text-slate-600">Raccolti, costi, profitti: i dati che contano davvero per il tuo orto.</p>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <svg className="h-6 w-6 max-h-6 max-w-6 flex-shrink-0 text-olive" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span className="text-slate-300">Interfaccia intuitiva</span>
-              </div>
+            </div>
+
+            <div className="pt-4">
+              <Button href="/dashboard" className="px-8 py-4 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700">
+                Inizia il tuo orto
+              </Button>
             </div>
           </div>
         </section>

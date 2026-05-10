@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { getMoonPhase } from '@/lib/moon';
 import TodayPriorityBox from '@/components/dashboard/TodayPriorityBox';
 import { createFeedback } from '@/lib/feedbackService';
-import { getUserCrops, type Crop } from '@/lib/cropService';
+import { getUserCrops, getUserTotalCosts, getUserTotalHarvests, type Crop } from '@/lib/cropService';
 import { useAuth } from '@/lib/auth-context';
 
 function formatCurrency(value: number) {
@@ -21,6 +21,8 @@ function formatCurrency(value: number) {
 
 export default function DashboardPage() {
   const [cropsData, setCropsData] = useState<Crop[]>([]);
+  const [totalCosts, setTotalCosts] = useState(0);
+  const [totalRealProduction, setTotalRealProduction] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const moon = useMemo(() => getMoonPhase(), []);
@@ -84,6 +86,19 @@ export default function DashboardPage() {
       const cropsResult = await getUserCrops();
       console.log('[Dashboard] ✨ Successfully loaded crops:', cropsResult.length);
       setCropsData(cropsResult);
+      
+      // Load total costs
+      console.log('[Dashboard] 🔄 Calling getUserTotalCosts...');
+      const costsResult = await getUserTotalCosts();
+      console.log('[Dashboard] ✨ Successfully loaded total costs:', costsResult);
+      setTotalCosts(costsResult);
+
+      // Load total real production from harvests
+      console.log('[Dashboard] 🔄 Calling getUserTotalHarvests...');
+      const harvestsResult = await getUserTotalHarvests();
+      console.log('[Dashboard] ✨ Successfully loaded total harvests:', harvestsResult);
+      setTotalRealProduction(harvestsResult);
+      
       setLoading(false);
     } catch (err) {
       console.error('[Dashboard] 💥 Error in loadCrops:', err);
@@ -144,11 +159,8 @@ export default function DashboardPage() {
     [cropsData]
   );
 
-  // For now, real production is 0 since we don't have harvest data in DB yet
-  const totalRealProduction = 0;
-
-  // For now, costs are 0 since we don't have cost data in DB yet
-  const totalCosts = 0;
+  // Use actual harvest totals from Supabase
+  // totalRealProduction is loaded from the database
 
   if (authLoading || loading) {
     console.log('[Dashboard] ⏳ Still loading - authLoading:', authLoading, 'loading:', loading);

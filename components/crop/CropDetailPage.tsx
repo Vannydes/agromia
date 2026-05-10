@@ -11,6 +11,17 @@ import { generateCropAgronomicTasks, type AgronomicTask } from '@/lib/agronomic-
 import { useAuth } from '@/lib/auth-context';
 import { getCropById, deleteCrop } from '@/lib/cropService';
 import { crops } from '@/lib/crops';
+import {
+  addCost,
+  addHarvest,
+  addActivity,
+  getCostsByCrop,
+  getHarvestsByCrop,
+  getActivitiesByCrop,
+  type Cost,
+  type Harvest,
+  type Activity,
+} from '@/lib/cropDataService';
 import type { CropEvent } from '@/lib/userCrops';
 import type { Crop } from '@/lib/cropService';
 
@@ -19,9 +30,6 @@ type CropDetail = Crop & {
   yieldMin: number;
   yieldMax: number;
   pricePerKg: number;
-  costs: Array<{ note: string; amount: number }>;
-  harvests: Array<{ date: string; kg: number }>;
-  events: CropEvent[];
 };
 
 function getCropConfigByName(name: string) {
@@ -37,9 +45,6 @@ function createCropDetail(crop: Crop): CropDetail {
     yieldMin: config?.yieldMin ?? 3,
     yieldMax: config?.yieldMax ?? 6,
     pricePerKg: 2.5,
-    costs: [],
-    harvests: [],
-    events: [],
   };
 }
 
@@ -50,17 +55,23 @@ export default function CropPage() {
   const cropIdFromParams = Array.isArray(rawId) ? rawId[0] ?? '' : rawId ?? '';
 
   const [crop, setCrop] = useState<CropDetail | null>(null);
+  const [costs, setCosts] = useState<Cost[]>([]);
+  const [harvests, setHarvests] = useState<Harvest[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  
   const [kgValue, setKgValue] = useState('');
   const [costAmount, setCostAmount] = useState('');
   const [costNote, setCostNote] = useState('');
   const [error, setError] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
-  const [eventType, setEventType] = useState<CropEvent['type']>('trapianto');
+  const [eventType, setEventType] = useState<Activity['type']>('trapianto');
   const [activityDate, setActivityDate] = useState(
     new Date().toISOString().split('T')[0]
   );
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [relatedDataError, setRelatedDataError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [weather, setWeather] = useState<Weather | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
 
@@ -86,6 +97,9 @@ export default function CropPage() {
 
         if (!data) {
           setCrop(null);
+          setCosts([]);
+          setHarvests([]);
+          setActivities([]);
           setFetchError('Coltura non trovata');
           return;
         }
@@ -93,9 +107,46 @@ export default function CropPage() {
         const detail = createCropDetail(data);
         setCrop(detail);
         setPricePerKg(detail.pricePerKg.toString());
+        setFetchError(null);
+        setRelatedDataError(null);
+
+        // Load costs, harvests, and activities from Supabase
+        console.log('[Crop] Loading costs, harvests, and activities...');
+        const results = await Promise.allSettled([
+          getCostsByCrop(cropIdFromParams),
+          getHarvestsByCrop(cropIdFromParams),
+          getActivitiesByCrop(cropIdFromParams),
+        ]);
+
+        const [costsResult, harvestsResult, activitiesResult] = results;
+
+        setCosts(costsResult.status === 'fulfilled' ? costsResult.value : []);
+        setHarvests(harvestsResult.status === 'fulfilled' ? harvestsResult.value : []);
+        setActivities(activitiesResult.status === 'fulfilled' ? activitiesResult.value : []);
+
+        if (costsResult.status === 'rejected' || harvestsResult.status === 'rejected' || activitiesResult.status === 'rejected') {
+          console.error('[Crop] Related data load failed:', {
+            costs: costsResult,
+            harvests: harvestsResult,
+            activities: activitiesResult,
+          });
+          setRelatedDataError('Alcuni dati della coltura non sono disponibili al momento. Riprova più tardi.');
+        }
       } catch (err) {
-        setCrop(null);
-        setFetchError(err instanceof Error ? err.message : 'Errore durante il caricamento della coltura');
+        console.error('[Crop] Error loading crop:', err);
+        if (err instanceof Error && err.message.includes('No rows found')) {
+          setCrop(null);
+          setCosts([]);
+          setHarvests([]);
+          setActivities([]);
+          setFetchError('Coltura non trovata');
+        } else {
+          setCrop(null);
+          setCosts([]);
+          setHarvests([]);
+          setActivities([]);
+          setFetchError(err instanceof Error ? err.message : 'Errore durante il caricamento della coltura');
+        }
       } finally {
         setLoading(false);
       }
@@ -143,20 +194,14 @@ export default function CropPage() {
 
   const totalKg = useMemo(
     () =>
-      crop?.harvests.reduce(
-        (sum, item) => sum + (typeof (item as any).kg === 'number' ? (item as any).kg : 0),
-        0
-      ) ?? 0,
-    [crop]
+      harvests.reduce((sum, harvest) => sum + harvest.quantity_kg, 0),
+    [harvests]
   );
 
   const totalCosts = useMemo(
     () =>
-      crop?.costs.reduce(
-        (sum, item) => sum + (typeof (item as any).amount === 'number' ? (item as any).amount : 0),
-        0
-      ) ?? 0,
-    [crop]
+      costs.reduce((sum, cost) => sum + cost.amount, 0),
+    [costs]
   );
 
   const estimatedMin = crop ? crop.plants * crop.yieldMin : 0;
@@ -179,25 +224,32 @@ export default function CropPage() {
   };
 
   const allEvents = useMemo(() => {
-    if (!crop) return [];
+    const events: Array<CropEvent & { id?: string }> = [];
 
-    const events: Array<CropEvent & { id?: string }> = [...(crop.events || [])];
+    // Add activities from database
+    activities.forEach((activity) => {
+      events.push({
+        type: activity.type as any,
+        note: activity.note || activity.type,
+        date: activity.date,
+        id: activity.id,
+      });
+    });
 
     // Add harvests as events
-    crop.harvests.forEach((harvest, index) => {
-      const kg = (harvest as any).kg ?? 0;
+    harvests.forEach((harvest) => {
       events.push({
         type: 'raccolta',
-        note: `Raccolti ${kg.toFixed(1)} kg`,
-        date: (harvest as any).date ?? new Date().toISOString().slice(0, 10),
-        id: `harvest-${index}`
+        note: `Raccolti ${harvest.quantity_kg.toFixed(1)} kg`,
+        date: harvest.date,
+        id: harvest.id,
       });
     });
 
     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [crop]);
+  }, [activities, harvests]);
 
-  const handleAddHarvest = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddHarvest = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
 
@@ -211,20 +263,24 @@ export default function CropPage() {
       return;
     }
 
-    const harvestEvent: CropEvent = {
-      type: 'raccolta',
-      note: `Raccolti ${kg.toFixed(1)} kg`,
-      date: new Date().toISOString().slice(0, 10),
-    };
+    setIsSubmitting(true);
 
-    const updatedCrop: CropDetail = {
-      ...crop,
-      harvests: [...crop.harvests, { date: new Date().toISOString().slice(0, 10), kg }],
-      events: [...crop.events, harvestEvent],
-    };
-
-    setCrop(updatedCrop);
-    setKgValue('');
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      await addHarvest(crop.id, date, kg, `Raccolti ${kg.toFixed(1)} kg`);
+      console.log('[Crop] Harvest added, reloading...');
+      
+      // Reload harvests
+      const updatedHarvests = await getHarvestsByCrop(crop.id);
+      setHarvests(updatedHarvests);
+      
+      setKgValue('');
+    } catch (err) {
+      console.error('[Crop] Error adding harvest:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante il salvataggio del raccolto');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleUpdatePrice = (event: React.FormEvent<HTMLFormElement>) => {
@@ -249,7 +305,7 @@ export default function CropPage() {
     setCrop(updatedCrop);
   };
 
-  const handleAddEvent = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddEvent = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
 
@@ -262,21 +318,27 @@ export default function CropPage() {
       return;
     }
 
-    const newEvent: CropEvent = {
-      type: eventType,
-      date: new Date(activityDate).toISOString().slice(0, 10),
-    };
+    setIsSubmitting(true);
 
-    const updatedCrop: CropDetail = {
-      ...crop,
-      events: [...crop.events, newEvent],
-    };
-
-    setCrop(updatedCrop);
-    setActivityDate(new Date().toISOString().split('T')[0]);
+    try {
+      const date = new Date(activityDate).toISOString().slice(0, 10);
+      await addActivity(crop.id, eventType, date, `Attività: ${eventType}`);
+      console.log('[Crop] Activity added, reloading...');
+      
+      // Reload activities
+      const updatedActivities = await getActivitiesByCrop(crop.id);
+      setActivities(updatedActivities);
+      
+      setActivityDate(new Date().toISOString().split('T')[0]);
+    } catch (err) {
+      console.error('[Crop] Error adding activity:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante il salvataggio dell\'attività');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleAddCost = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddCost = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
 
@@ -295,14 +357,24 @@ export default function CropPage() {
       return;
     }
 
-    const updatedCrop: CropDetail = {
-      ...crop,
-      costs: [...crop.costs, { note: costNote.trim(), amount }],
-    };
+    setIsSubmitting(true);
 
-    setCrop(updatedCrop);
-    setCostAmount('');
-    setCostNote('');
+    try {
+      await addCost(crop.id, costNote.trim(), amount);
+      console.log('[Crop] Cost added, reloading...');
+      
+      // Reload costs
+      const updatedCosts = await getCostsByCrop(crop.id);
+      setCosts(updatedCosts);
+      
+      setCostAmount('');
+      setCostNote('');
+    } catch (err) {
+      console.error('[Crop] Error adding cost:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante il salvataggio del costo');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteCrop = async () => {
@@ -391,6 +463,11 @@ export default function CropPage() {
           <h2 className="text-xl font-semibold text-slate-900">Attività consigliate</h2>
 
           <div className="mt-6 space-y-6">
+            {relatedDataError ? (
+              <div className="rounded-3xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                {relatedDataError}
+              </div>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-2xl bg-olive/5 p-5 transition hover:bg-olive/8">
                 <p className="text-xs uppercase tracking-[0.3em] text-slate-500 font-medium">Temperatura</p>
@@ -413,12 +490,12 @@ export default function CropPage() {
             ) : tasks.length > 0 ? (
               <div className="grid gap-4">
                 {tasks.map((task) => (
-                  <div key={task.id} className={`rounded-3xl border p-4 shadow-sm ${borderClasses[task.color]}`}>
-                    <div className="flex items-start gap-3">
-                      <div className="text-2xl shrink-0">{task.icon}</div>
-                      <div>
-                        <p className="font-semibold text-slate-900">{task.title}</p>
-                        <p className="mt-1 text-sm text-slate-600">{task.description}</p>
+                  <div key={task.id} className={`rounded-3xl border-2 p-6 shadow-md transition hover:shadow-lg ${borderClasses[task.color]}`}>
+                    <div className="flex items-start gap-4 sm:gap-6">
+                      <div className="text-4xl shrink-0 leading-none">{task.icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-lg leading-tight text-slate-900">{task.title}</p>
+                        <p className="mt-2 text-sm sm:text-base leading-relaxed text-slate-700">{task.description}</p>
                       </div>
                     </div>
                   </div>
@@ -460,8 +537,11 @@ export default function CropPage() {
                   min="0"
                   value={kgValue}
                   onChange={(event) => setKgValue(event.target.value)}
+                  disabled={isSubmitting}
                 />
-                <Button type="submit" className="h-fit">Aggiungi raccolto</Button>
+                <Button type="submit" className="h-fit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Salvataggio...' : 'Aggiungi raccolto'}
+                </Button>
               </form>
             </div>
 
@@ -473,6 +553,7 @@ export default function CropPage() {
                   type="text"
                   value={costNote}
                   onChange={(event) => setCostNote(event.target.value)}
+                  disabled={isSubmitting}
                 />
                 <Input
                   label="Importo (€)"
@@ -481,9 +562,12 @@ export default function CropPage() {
                   min="0"
                   value={costAmount}
                   onChange={(event) => setCostAmount(event.target.value)}
+                  disabled={isSubmitting}
                 />
                 <div className="flex justify-end">
-                  <Button type="submit">Aggiungi costo</Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Salvataggio...' : 'Aggiungi costo'}
+                  </Button>
                 </div>
               </form>
             </div>
@@ -510,16 +594,16 @@ export default function CropPage() {
             <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
               <h3 className="text-xl font-semibold text-slate-900">Storico raccolti</h3>
               <div className="mt-6 space-y-3">
-                {crop.harvests.length === 0 ? (
+                {harvests.length === 0 ? (
                   <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
                     Non hai ancora raccolto nulla? Quando raccogli i primi frutti, registrali qui.
                   </div>
                 ) : (
-                  crop.harvests.map((harvest, index) => (
-                    <div key={`${(harvest as any).date}-${index}`} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
+                  harvests.map((harvest) => (
+                    <div key={harvest.id} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{(harvest as any).date}</span>
-                        <span className="font-semibold text-green-600">{formatKg((harvest as any).kg ?? 0)}</span>
+                        <span className="text-sm font-medium text-slate-700">{harvest.date}</span>
+                        <span className="font-semibold text-green-600">{formatKg(harvest.quantity_kg)}</span>
                       </div>
                     </div>
                   ))
@@ -530,16 +614,16 @@ export default function CropPage() {
             <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
               <h3 className="text-xl font-semibold text-slate-900">Costi</h3>
               <div className="mt-6 space-y-3">
-                {crop.costs.length === 0 ? (
+                {costs.length === 0 ? (
                   <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
                     Nessun costo registrato. Semi, concimi e materiali appariranno qui.
                   </div>
                 ) : (
-                  crop.costs.map((cost, index) => (
-                    <div key={`${(cost as any).note}-${index}`} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
+                  costs.map((cost) => (
+                    <div key={cost.id} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{(cost as any).note}</span>
-                        <span className="font-semibold text-red-600">{formatCurrency((cost as any).amount ?? 0)}</span>
+                        <span className="text-sm font-medium text-slate-700">{cost.note}</span>
+                        <span className="font-semibold text-red-600">{formatCurrency(cost.amount)}</span>
                       </div>
                     </div>
                   ))
@@ -554,12 +638,14 @@ export default function CropPage() {
                   Tipo attività
                   <select
                     value={eventType}
-                    onChange={(event) => setEventType(event.target.value as CropEvent['type'])}
-                    className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20"
+                    onChange={(event) => setEventType(event.target.value as Activity['type'])}
+                    disabled={isSubmitting}
+                    className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
                   >
                     <option value="trapianto">Trapianto</option>
+                    <option value="semina">Semina</option>
                     <option value="concimazione">Concimazione</option>
-                    <option value="trattamento">Trattamento</option>
+                    <option value="irrigazione">Irrigazione</option>
                     <option value="raccolta">Raccolta</option>
                   </select>
                 </label>
@@ -569,11 +655,14 @@ export default function CropPage() {
                     type="date"
                     value={activityDate}
                     onChange={(e) => setActivityDate(e.target.value)}
-                    className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20"
+                    disabled={isSubmitting}
+                    className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
                   />
                 </label>
                 <div className="flex justify-end">
-                  <Button type="submit">Aggiungi attività</Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Salvataggio...' : 'Aggiungi attività'}
+                  </Button>
                 </div>
               </form>
             </div>

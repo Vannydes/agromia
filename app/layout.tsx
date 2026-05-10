@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://agromia.vercel.app'),
   title: 'Agromia | Coltiva il tuo orto con semplicità',
   description: 'Prenditi cura del tuo orto senza stress. Monitora i tuoi progressi, impara dai raccolti e guarda crescere il frutto del tuo lavoro',
 

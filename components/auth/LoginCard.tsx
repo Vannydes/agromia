@@ -33,15 +33,23 @@ export function LoginCard() {
       if (signInError) {
         setError(signInError);
         console.error('[Login] error', signInError);
+        setLoading(false);
         return;
       }
 
       console.log('[Login] success', { email });
+      
+      // Small delay to ensure auth state is propagated
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('[Login] redirecting to dashboard');
       router.push('/dashboard');
+      
+      // Also refresh to ensure server-side session is synced
+      router.refresh();
     } catch (err) {
       console.error('[Login] exception', err);
       setError('Si è verificato un errore durante il login. Riprova più tardi.');
-    } finally {
       setLoading(false);
     }
   };

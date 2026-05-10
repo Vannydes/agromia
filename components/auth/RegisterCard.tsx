@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabaseClient } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -19,20 +19,22 @@ export function RegisterCard() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error } = await supabaseClient.auth.signUp({
         email,
         password,
       });
 
       if (error) {
         setError(error.message);
+        setLoading(false);
       } else {
-        // Redirect to login or show success message
+        // Redirect to login with message
+        console.log('[Register] Success - redirecting to login');
         router.push('/login?message=Controlla la tua email per confermare l\'account');
       }
     } catch (err) {
+      console.error('[Register] Exception:', err);
       setError('Si è verificato un errore durante la registrazione');
-    } finally {
       setLoading(false);
     }
   };

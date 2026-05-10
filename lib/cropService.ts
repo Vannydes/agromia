@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabaseClient';
+import { getTotalCostsForUser, getTotalHarvestsForUser } from './cropDataService';
 
 export interface Crop {
   id: string;
@@ -193,4 +194,14 @@ export async function createCustomCrop(cropData: CreateCustomCropData): Promise<
   }
 
   return data;
+}
+
+// Get total costs for the current user across all crops
+export async function getUserTotalCosts(): Promise<number> {
+  return await getTotalCostsForUser();
+}
+
+// Get total harvest weight for the current user across all crops
+export async function getUserTotalHarvests(): Promise<number> {
+  return await getTotalHarvestsForUser();
 }
