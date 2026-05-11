@@ -2,7 +2,6 @@
 
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
-import { useRouter } from 'next/navigation';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 type AuthContextType = {
@@ -96,12 +95,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    console.log('[LOGOUT] start');
     setLoading(true);
-    await supabaseClient.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) {
+      console.error('[LOGOUT] error', error.message);
+    }
+
     setUser(null);
     setSession(null);
     setLoading(false);
-    router.push('/');
+
+    window.location.href = '/';
   };
 
   const value = {
