@@ -32,7 +32,10 @@ export async function middleware(request: NextRequest) {
     error,
   } = await supabase.auth.getSession();
 
-  const user = session?.user;
+  const user = session?.user ?? null;
+
+  console.log('[MIDDLEWARE USER]', user, 'path', request.nextUrl.pathname);
+  console.log('[MIDDLEWARE SESSION]', session, 'error', error?.message);
 
   if (error) {
     console.error('Supabase middleware auth error:', error.message);

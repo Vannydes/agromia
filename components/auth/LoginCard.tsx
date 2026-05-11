@@ -30,13 +30,15 @@ export function LoginCard() {
 
       if (signInError) {
         setError(signInError);
-        setLoading(false);
         return;
       }
 
-      router.replace('/dashboard');
-    } catch {
+      console.log('[LOGIN] success, redirecting to dashboard');
+      window.location.href = '/dashboard';
+    } catch (err) {
+      console.error('[LOGIN] error', err);
       setError('Si è verificato un errore durante il login. Riprova più tardi.');
+    } finally {
       setLoading(false);
     }
   };

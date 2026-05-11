@@ -30,6 +30,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error,
       } = await supabaseClient.auth.getSession();
 
+      console.log('[AUTH INIT] session', session, 'error', error?.message);
+
       if (!error) {
         setSession(session);
         setUser(session?.user ?? null);
@@ -41,7 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log('[AUTH STATE CHANGE]', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -52,11 +55,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabaseClient]);
 
   const signIn = async (email: string, password: string) => {
+    console.log('[LOGIN] attempt', email);
     try {
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
         password,
       });
+
+      console.log('[LOGIN] signInWithPassword result', { data, error });
 
       if (error) {
         return { error: error.message };
@@ -72,10 +78,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      setSession(session);
-      setUser(user);
+      const {
+        data: { session: refreshedSession },
+        error: refreshError,
+      } = await supabaseClient.auth.getSession();
+
+      console.log('[LOGIN] refreshed session', refreshedSession, refreshError);
+
+      setSession(refreshedSession ?? session);
+      setUser(refreshedSession?.user ?? user);
+
       return { error: null };
-    } catch {
+    } catch (err) {
+      console.error('[LOGIN] signIn error', err);
       return { error: 'Si è verificato un errore durante il login' };
     }
   };
