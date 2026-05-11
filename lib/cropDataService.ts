@@ -48,9 +48,9 @@ export interface Activity {
   id: string;
   crop_id: string;
   user_id: string;
-  type: 'semina' | 'trapianto' | 'concimazione' | 'irrigazione' | 'raccolta';
-  date: string;
-  note: string | null;
+  activity_type: 'semina' | 'trapianto' | 'concimazione' | 'irrigazione' | 'raccolta';
+  activity_date: string;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -193,9 +193,9 @@ export async function createCrop(cropData: CreateCropData): Promise<Crop> {
         .insert({
           crop_id: crop.id,
           user_id: user.id,
-          type: 'trapianto',
-          date: crop.transplant_date,
-          note: 'Trapianto registrato',
+          activity_type: 'trapianto',
+          activity_date: crop.transplant_date,
+          notes: 'Trapianto registrato',
         });
       console.log('[Supabase] Transplant activity created successfully');
     } catch (activityError) {
@@ -316,7 +316,7 @@ export async function getActivities(cropId?: string): Promise<Activity[]> {
     .from('activities')
     .select('*')
     .eq('user_id', user.id)
-    .order('date', { ascending: false });
+    .order('activity_date', { ascending: false });
 
   if (cropId) {
     query = query.eq('crop_id', cropId);
@@ -333,9 +333,9 @@ export async function getActivities(cropId?: string): Promise<Activity[]> {
 
 export async function addActivity(
   cropId: string,
-  type: Activity['type'],
+  activityType: Activity['activity_type'],
   date: string,
-  note?: string
+  notes?: string
 ): Promise<Activity> {
   const user = await getAuthenticatedUser();
   const { data, error } = await supabaseClient
@@ -343,9 +343,9 @@ export async function addActivity(
     .insert({
       crop_id: cropId,
       user_id: user.id,
-      type,
-      date,
-      note: note || null,
+      activity_type: activityType,
+      activity_date: date,
+      notes: notes || null,
     })
     .select()
     .single();

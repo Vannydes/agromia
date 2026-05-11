@@ -38,9 +38,9 @@ CREATE TABLE IF NOT EXISTS activities (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   crop_id UUID NOT NULL REFERENCES crops(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('semina', 'trapianto', 'concimazione', 'irrigazione', 'raccolta')),
-  date DATE NOT NULL,
-  note TEXT,
+  activity_type TEXT NOT NULL CHECK (activity_type IN ('semina', 'trapianto', 'concimazione', 'irrigazione', 'raccolta')),
+  activity_date DATE NOT NULL,
+  notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -64,7 +64,7 @@ CREATE POLICY IF NOT EXISTS "Users can delete their own activities" ON activitie
 -- Create index on crop_id and user_id for better performance
 CREATE INDEX IF NOT EXISTS activities_crop_id_idx ON activities(crop_id);
 CREATE INDEX IF NOT EXISTS activities_user_id_idx ON activities(user_id);
-CREATE INDEX IF NOT EXISTS activities_date_idx ON activities(date);
+CREATE INDEX IF NOT EXISTS activities_activity_date_idx ON activities(activity_date);
 
 -- Create harvests table
 CREATE TABLE IF NOT EXISTS harvests (

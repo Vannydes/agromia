@@ -26,7 +26,7 @@ import {
 import { crops } from '@/lib/crops';
 
 type TimelineEvent = {
-  type: Activity['type'] | 'raccolta';
+  type: Activity['activity_type'] | 'raccolta';
   note: string;
   date: string;
   id?: string;
@@ -72,7 +72,7 @@ export default function CropPage() {
   const [costNote, setCostNote] = useState('');
   const [error, setError] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
-  const [eventType, setEventType] = useState<Activity['type']>('trapianto');
+  const [eventType, setEventType] = useState<Activity['activity_type']>('trapianto');
   const [activityDate, setActivityDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -228,9 +228,9 @@ export default function CropPage() {
     // Add activities from database
     activities.forEach((activity) => {
       events.push({
-        type: activity.type,
-        note: activity.note || activity.type,
-        date: activity.date,
+        type: activity.activity_type,
+        note: activity.notes || activity.activity_type,
+        date: activity.activity_date,
         id: activity.id,
       });
     });
@@ -656,7 +656,7 @@ export default function CropPage() {
                   Tipo attività
                   <select
                     value={eventType}
-                    onChange={(event) => setEventType(event.target.value as Activity['type'])}
+                    onChange={(event) => setEventType(event.target.value as Activity['activity_type'])}
                     disabled={isSubmitting}
                     className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
                   >
