@@ -96,4 +96,4 @@ CREATE POLICY IF NOT EXISTS "Users can delete their own harvests" ON harvests
 -- Create index on crop_id and user_id for better performance
 CREATE INDEX IF NOT EXISTS harvests_crop_id_idx ON harvests(crop_id);
 CREATE INDEX IF NOT EXISTS harvests_user_id_idx ON harvests(user_id);
-CREATE INDEX IF NOT EXISTS harvests_date_idx ON harvests(date);
+CREATE INDEX IF NOT EXISTS harvests_created_at_idx ON harvests(created_at);

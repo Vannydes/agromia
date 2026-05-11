@@ -58,9 +58,8 @@ export interface Harvest {
   id: string;
   crop_id: string;
   user_id: string;
-  date: string;
   quantity_kg: number;
-  note: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -330,7 +329,7 @@ export async function getHarvests(cropId?: string): Promise<Harvest[]> {
     .from('harvests')
     .select('*')
     .eq('user_id', user.id)
-    .order('date', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (cropId) {
     query = query.eq('crop_id', cropId);
@@ -347,9 +346,8 @@ export async function getHarvests(cropId?: string): Promise<Harvest[]> {
 
 export async function addHarvest(
   cropId: string,
-  date: string,
   quantity_kg: number,
-  note?: string
+  notes?: string
 ): Promise<Harvest> {
   const user = await getAuthenticatedUser();
   const { data, error } = await supabaseClient
@@ -357,9 +355,8 @@ export async function addHarvest(
     .insert({
       crop_id: cropId,
       user_id: user.id,
-      date,
       quantity_kg,
-      note: note || null,
+      notes: notes || null,
     })
     .select()
     .single();

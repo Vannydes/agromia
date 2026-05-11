@@ -240,7 +240,7 @@ export default function CropPage() {
       events.push({
         type: 'raccolta',
         note: `Raccolti ${harvest.quantity_kg.toFixed(1)} kg`,
-        date: harvest.date,
+        date: harvest.created_at,
         id: harvest.id,
       });
     });
@@ -266,7 +266,7 @@ export default function CropPage() {
 
     try {
       const date = new Date().toISOString().slice(0, 10);
-      await addHarvest(crop.id, date, kg, `Raccolti ${kg.toFixed(1)} kg`);
+      await addHarvest(crop.id, kg, `Raccolti ${kg.toFixed(1)} kg`);
       const updatedHarvests = await getHarvestsByCrop(crop.id);
       setHarvests(updatedHarvests);
       
@@ -596,7 +596,7 @@ export default function CropPage() {
                   harvests.map((harvest) => (
                     <div key={harvest.id} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{harvest.date}</span>
+                        <span className="text-sm font-medium text-slate-700">{harvest.created_at}</span>
                         <span className="font-semibold text-green-600">{formatKg(harvest.quantity_kg)}</span>
                       </div>
                     </div>
