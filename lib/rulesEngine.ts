@@ -1,4 +1,8 @@
-import type { CropEvent } from '@/lib/userCrops';
+export type CropEvent = {
+  type: 'semina' | 'trapianto' | 'concimazione' | 'irrigazione' | 'raccolta';
+  date: string;
+  note?: string | null;
+};
 
 export type Rule = {
   crop: string;

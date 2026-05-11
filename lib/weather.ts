@@ -61,11 +61,8 @@ export async function getCurrentWeather(): Promise<Weather | null> {
 
   // Return cached data if still valid
   if (weatherCache.data && (now - weatherCache.timestamp) < oneHour) {
-    console.log('Weather: Returning cached weather data');
     return weatherCache.data;
   }
-
-  console.log('Weather: Cache expired or empty, fetching new weather data');
 
   try {
     // Try to get real weather data (includes Rome fallback)
@@ -74,15 +71,12 @@ export async function getCurrentWeather(): Promise<Weather | null> {
     if (realWeather) {
       const weather = convertWeatherData(realWeather);
       weatherCache = { data: weather, timestamp: now };
-      console.log('Weather: Successfully cached new weather data');
       return weather;
     }
-  } catch (error) {
-    console.warn('Weather: Failed to fetch real weather data:', error);
+  } catch {
   }
 
-  // No fallback mock data - return null if all sources fail
-  console.warn('Weather: All weather sources failed, returning null');
+  return null;
   return null;
 }
 

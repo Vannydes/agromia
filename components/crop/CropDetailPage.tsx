@@ -9,8 +9,6 @@ import { formatKg, formatCurrency } from '@/lib/formatting';
 import { getCurrentWeather, type Weather } from '@/lib/weather';
 import { generateCropAgronomicTasks, type AgronomicTask } from '@/lib/agronomic-engine';
 import { useAuth } from '@/lib/auth-context';
-import { getCropById, deleteCrop } from '@/lib/cropService';
-import { crops } from '@/lib/crops';
 import {
   addCost,
   addHarvest,
@@ -18,12 +16,21 @@ import {
   getCostsByCrop,
   getHarvestsByCrop,
   getActivitiesByCrop,
+  getCropById,
+  deleteCrop,
+  type Crop,
   type Cost,
   type Harvest,
   type Activity,
 } from '@/lib/cropDataService';
-import type { CropEvent } from '@/lib/userCrops';
-import type { Crop } from '@/lib/cropService';
+import { crops } from '@/lib/crops';
+
+type TimelineEvent = {
+  type: Activity['type'] | 'raccolta';
+  note: string;
+  date: string;
+  id?: string;
+};
 
 type CropDetail = Crop & {
   spacing: number;
@@ -38,12 +45,13 @@ function getCropConfigByName(name: string) {
 
 function createCropDetail(crop: Crop): CropDetail {
   const config = getCropConfigByName(crop.name);
+  const custom = crop.custom_crops;
 
   return {
     ...crop,
-    spacing: config?.spacing ?? 50,
-    yieldMin: config?.yieldMin ?? 3,
-    yieldMax: config?.yieldMax ?? 6,
+    spacing: custom?.spacing_cm ?? config?.spacing ?? 50,
+    yieldMin: custom ? Number(custom.min_yield) : config?.yieldMin ?? 3,
+    yieldMax: custom ? Number(custom.max_yield) : config?.yieldMax ?? 6,
     pricePerKg: 2.5,
   };
 }
@@ -79,10 +87,8 @@ export default function CropPage() {
 
   useEffect(() => {
     const loadCrop = async () => {
-      console.log('Crop page params.id', cropIdFromParams);
       if (authLoading) return;
       if (!user || !cropIdFromParams) {
-        console.log('Crop page missing user or id', { user: !!user, cropIdFromParams });
         setCrop(null);
         setLoading(false);
         return;
@@ -93,7 +99,6 @@ export default function CropPage() {
 
       try {
         const data = await getCropById(cropIdFromParams);
-        console.log('Fetched crop', data);
 
         if (!data) {
           setCrop(null);
@@ -110,8 +115,6 @@ export default function CropPage() {
         setFetchError(null);
         setRelatedDataError(null);
 
-        // Load costs, harvests, and activities from Supabase
-        console.log('[Crop] Loading costs, harvests, and activities...');
         const results = await Promise.allSettled([
           getCostsByCrop(cropIdFromParams),
           getHarvestsByCrop(cropIdFromParams),
@@ -165,20 +168,16 @@ export default function CropPage() {
   useEffect(() => {
     // Only run on client-side
     if (typeof window === 'undefined') {
-      console.log('Weather: Skipping server-side weather load in crop page');
       setWeatherLoading(false);
       return;
     }
 
-    console.log('Weather: Loading weather data for crop page');
 
     const loadWeather = async () => {
       try {
         const weatherData = await getCurrentWeather();
-        if (weatherData) {
-          console.log('Weather: Crop page weather loaded successfully');
-        } else {
-          console.log('Weather: Crop page weather data not available');
+        if (!weatherData) {
+          setWeather(null);
         }
         setWeather(weatherData);
       } catch (error) {
@@ -224,12 +223,12 @@ export default function CropPage() {
   };
 
   const allEvents = useMemo(() => {
-    const events: Array<CropEvent & { id?: string }> = [];
+    const events: TimelineEvent[] = [];
 
     // Add activities from database
     activities.forEach((activity) => {
       events.push({
-        type: activity.type as any,
+        type: activity.type,
         note: activity.note || activity.type,
         date: activity.date,
         id: activity.id,
@@ -268,9 +267,6 @@ export default function CropPage() {
     try {
       const date = new Date().toISOString().slice(0, 10);
       await addHarvest(crop.id, date, kg, `Raccolti ${kg.toFixed(1)} kg`);
-      console.log('[Crop] Harvest added, reloading...');
-      
-      // Reload harvests
       const updatedHarvests = await getHarvestsByCrop(crop.id);
       setHarvests(updatedHarvests);
       
@@ -323,9 +319,6 @@ export default function CropPage() {
     try {
       const date = new Date(activityDate).toISOString().slice(0, 10);
       await addActivity(crop.id, eventType, date, `Attività: ${eventType}`);
-      console.log('[Crop] Activity added, reloading...');
-      
-      // Reload activities
       const updatedActivities = await getActivitiesByCrop(crop.id);
       setActivities(updatedActivities);
       
@@ -361,9 +354,6 @@ export default function CropPage() {
 
     try {
       await addCost(crop.id, costNote.trim(), amount);
-      console.log('[Crop] Cost added, reloading...');
-      
-      // Reload costs
       const updatedCosts = await getCostsByCrop(crop.id);
       setCosts(updatedCosts);
       
@@ -440,6 +430,10 @@ export default function CropPage() {
           <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
             <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Spaziatura</p>
             <p className="mt-4 text-3xl font-semibold text-slate-900">{crop.spacing} cm</p>
+          </div>
+          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Data trapianto</p>
+            <p className="mt-4 text-3xl font-semibold text-slate-900">{crop.transplant_date ?? 'Non disponibile'}</p>
           </div>
           <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
             <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Stimato</p>

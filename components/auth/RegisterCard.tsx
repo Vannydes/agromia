@@ -28,12 +28,9 @@ export function RegisterCard() {
         setError(error.message);
         setLoading(false);
       } else {
-        // Redirect to login with message
-        console.log('[Register] Success - redirecting to login');
         router.push('/login?message=Controlla la tua email per confermare l\'account');
       }
-    } catch (err) {
-      console.error('[Register] Exception:', err);
+    } catch {
       setError('Si è verificato un errore durante la registrazione');
       setLoading(false);
     }

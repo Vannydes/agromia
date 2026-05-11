@@ -61,7 +61,6 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     );
 
     if (!response.ok) {
-      console.error('Weather API error:', response.statusText);
       return null;
     }
 
@@ -80,8 +79,7 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
       weatherDescription: getWeatherDescription(current.weather_code),
       location: `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
     };
-  } catch (error) {
-    console.error('Error fetching weather data:', error);
+  } catch {
     return null;
   }
 }
@@ -103,29 +101,19 @@ export async function getWeatherFromGeolocation(): Promise<WeatherData | null> {
   return new Promise(async (resolve) => {
     // Check if geolocation is supported
     if (!navigator.geolocation) {
-      console.warn('Weather: Geolocation not supported by this browser, using Rome fallback');
       const romeWeather = await getWeatherForRome();
       resolve(romeWeather);
       return;
     }
 
-    console.log('Weather: Requesting geolocation permission from browser...');
-
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        console.log('Weather: Geolocation permission granted! Coordinates:', { latitude, longitude });
-
         const weatherData = await fetchWeatherData(latitude, longitude);
-        if (weatherData) {
-          console.log('Weather: Successfully fetched weather for user location');
-        }
         resolve(weatherData);
       },
-      async (error) => {
-        console.warn('Weather: Geolocation permission denied or failed:', error.message, 'using Rome fallback');
+      async () => {
         const romeWeather = await getWeatherForRome();
-        console.log('Weather: Using Rome, Italy weather data as fallback');
         resolve(romeWeather);
       },
       {

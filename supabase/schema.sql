@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS crops (
   name TEXT NOT NULL,
   plants INTEGER NOT NULL DEFAULT 0,
   custom_crop_id UUID REFERENCES custom_crops(id) ON DELETE SET NULL,
+  transplant_date DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

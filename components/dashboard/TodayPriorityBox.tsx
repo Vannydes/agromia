@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { getCurrentWeather, type Weather } from '@/lib/weather';
-import type { Crop } from '@/lib/cropService';
+import type { Crop } from '@/lib/cropDataService';
 import { generateAgronomicTasks, type AgronomicTask } from '@/lib/agronomic-engine';
 
 type Props = {
@@ -25,26 +25,21 @@ export default function TodayPriorityBox({ moonLabel, isGrowingMoon, crops }: Pr
 
   useEffect(() => {
     if (typeof window === 'undefined') {
-      console.log('Weather: Skipping server-side execution');
+      setLoading(false);
       return;
     }
-
-    console.log('Weather: Starting weather data load on dashboard');
 
     const loadWeather = async () => {
       try {
         const weatherData = await getCurrentWeather();
 
         if (weatherData) {
-          console.log('Weather: Successfully loaded weather data');
           setWeather(weatherData);
         } else {
-          console.warn('Weather: No weather data available');
           setError('Meteo non disponibile');
         }
-      } catch (err) {
-        console.error('Weather: Error loading weather:', err);
-        setError('Errore caricamento meteo');
+      } catch {
+        setError('Impossibile leggere il meteo in questo momento.');
       } finally {
         setLoading(false);
       }

@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { getMoonPhase } from '@/lib/moon';
 import TodayPriorityBox from '@/components/dashboard/TodayPriorityBox';
 import { createFeedback } from '@/lib/feedbackService';
-import { getUserCrops, getUserTotalCosts, getUserTotalHarvests, type Crop } from '@/lib/cropService';
+import { getDashboardStats, getUserCrops, type Crop } from '@/lib/cropDataService';
 import { useAuth } from '@/lib/auth-context';
 
 function formatCurrency(value: number) {
@@ -72,40 +72,28 @@ export default function DashboardPage() {
   };
 
   const loadCrops = async () => {
-    console.log('[Dashboard] 🚀 Starting crop load');
     const timeoutId = setTimeout(() => {
-      console.error('[Dashboard] ⏱️ Fetch timeout - setting error state');
       setLoading(false);
       setError('Il caricamento della dashboard ha superato il tempo massimo. Riprova.');
-    }, 10000); // 10 second timeout
+    }, 10000);
 
     try {
       setLoading(true);
       setError(null);
-      console.log('[Dashboard] 🔄 Calling getUserCrops...');
-      const cropsResult = await getUserCrops();
-      console.log('[Dashboard] ✨ Successfully loaded crops:', cropsResult.length);
-      setCropsData(cropsResult);
-      
-      // Load total costs
-      console.log('[Dashboard] 🔄 Calling getUserTotalCosts...');
-      const costsResult = await getUserTotalCosts();
-      console.log('[Dashboard] ✨ Successfully loaded total costs:', costsResult);
-      setTotalCosts(costsResult);
 
-      // Load total real production from harvests
-      console.log('[Dashboard] 🔄 Calling getUserTotalHarvests...');
-      const harvestsResult = await getUserTotalHarvests();
-      console.log('[Dashboard] ✨ Successfully loaded total harvests:', harvestsResult);
-      setTotalRealProduction(harvestsResult);
-      
+      const cropsResult = await getUserCrops();
+      setCropsData(cropsResult);
+
+      const stats = await getDashboardStats();
+      setTotalCosts(stats.totalCosts);
+      setTotalRealProduction(stats.totalRealProduction);
+
       setLoading(false);
     } catch (err) {
-      console.error('[Dashboard] 💥 Error in loadCrops:', err);
       setError(
-        err instanceof Error 
-          ? `Errore: ${err.message}` 
-          : 'Errore nel caricamento delle colture'
+        err instanceof Error
+          ? 'Errore nel caricamento della dashboard. Riprova più tardi.'
+          : 'Errore nel caricamento della dashboard'
       );
       setLoading(false);
     } finally {
@@ -114,29 +102,20 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    console.log('[Dashboard] 🔍 useEffect triggered - authLoading:', authLoading, 'user:', !!user);
-    
     if (authLoading) {
-      console.log('[Dashboard] ⏳ Auth is still loading');
       return;
     }
 
     if (!user) {
-      console.log('[Dashboard] 🔐 No user - redirecting to login');
       router.replace('/login');
       return;
     }
 
-    console.log('[Dashboard] 👤 User authenticated:', user.id);
     loadCrops();
   }, [authLoading, user, router]);
 
   const totalPlants = useMemo(
-    () => {
-      const total = cropsData.reduce((sum, crop) => sum + crop.plants, 0);
-      console.log('[Dashboard] 📊 Total plants calculated:', total);
-      return total;
-    },
+    () => cropsData.reduce((sum, crop) => sum + crop.plants, 0),
     [cropsData]
   );
 
@@ -163,7 +142,6 @@ export default function DashboardPage() {
   // totalRealProduction is loaded from the database
 
   if (authLoading || loading) {
-    console.log('[Dashboard] ⏳ Still loading - authLoading:', authLoading, 'loading:', loading);
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 py-10 sm:px-6 lg:px-10">
         <p className="rounded-3xl border border-slate-200 bg-white px-6 py-5 text-slate-700 shadow-sm">
@@ -241,10 +219,6 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        {(() => {
-          console.log('[Dashboard] ✅ Dashboard rendered successfully with', cropsData.length, 'crops');
-          return null;
-        })()}
         <div>
           <h1 className="text-3xl font-semibold text-olive">Dashboard</h1>
           <p className="text-slate-600">Panoramica semplice della produzione, dei raccolti e dei costi.</p>

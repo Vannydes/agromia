@@ -1,6 +1,5 @@
 import type { Weather } from '@/lib/weather';
-import type { Crop } from '@/lib/cropService';
-import { getAllCropStates } from '@/lib/gardenStorage';
+import type { Crop } from '@/lib/cropDataService';
 import { cropKeys, type CropKey } from '@/lib/crops';
 
 export type AgronomicTaskColor = 'red' | 'orange' | 'yellow' | 'blue' | 'green';
@@ -34,29 +33,20 @@ function normalizeCropName(name: string) {
   return name.trim().toLowerCase();
 }
 
-function getCropKeyFromName(name: string): CropKey | undefined {
-  const normalized = normalizeCropName(name);
-  return cropKeys.find((key) => normalized === key || normalized.includes(key));
-}
-
-function getLocalTransplantDate(name: string) {
-  const cropKey = getCropKeyFromName(name);
-  if (!cropKey) return undefined;
-
-  const state = getAllCropStates().find((item) => item.key === cropKey);
-  return state?.transplantDate;
-}
-
 function getCropAge(crop: Crop) {
-  const transplantDate = (crop as any).transplantDate as string | undefined || getLocalTransplantDate(crop.name);
+  const transplantDate = crop.transplant_date;
   if (transplantDate) {
     return daysSince(transplantDate);
   }
 
-  return daysSince(crop.created_at);
+  return undefined;
 }
 
-function createCropTask(crop: Crop, days: number) {
+function createCropTask(crop: Crop, days?: number) {
+  if (days === undefined) {
+    return null;
+  }
+
   const name = normalizeCropName(crop.name);
 
   const taskSets: Array<{

@@ -5,8 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cropOptions, getAllCropOptions } from '@/lib/crops';
-import { createCrop, getUserCustomCrops, createCustomCrop, type CustomCrop } from '@/lib/cropService';
-import { setCropTransplantDate } from '@/lib/gardenStorage';
+import {
+  createCrop,
+  getUserCustomCrops,
+  createCustomCrop,
+  type CustomCrop,
+} from '@/lib/cropDataService';
 
 export default function AddCropPage() {
   const router = useRouter();
@@ -30,8 +34,8 @@ export default function AddCropPage() {
       try {
         const crops = await getUserCustomCrops();
         setCustomCrops(crops);
-      } catch (err) {
-        console.error('Error loading custom crops:', err);
+      } catch {
+        setError('Impossibile caricare le colture personalizzate. Riprova più tardi.');
       }
     }
     loadCustomCrops();
@@ -50,13 +54,10 @@ export default function AddCropPage() {
       let customCropId: string | null = null;
 
       if (isCreatingCustom) {
-        // Validazione campi custom
         if (!customName.trim()) {
           throw new Error('Nome coltura obbligatorio');
         }
 
-        // Creazione custom crop
-        console.log('[AddCrop] Creating custom crop:', customName);
         const newCustomCrop = await createCustomCrop({
           name: customName.trim(),
           spacing_cm: customSpacing ? Number(customSpacing) : 50, // default 50cm
@@ -64,7 +65,6 @@ export default function AddCropPage() {
           max_yield: customMaxYield ? Number(customMaxYield) : 5, // default 5kg
         });
 
-        console.log('[AddCrop] Custom crop created:', newCustomCrop.id);
         cropName = newCustomCrop.name;
         customCropId = newCustomCrop.id;
 
@@ -80,21 +80,13 @@ export default function AddCropPage() {
         customCropId = cropOption.isCustom ? cropOption.key.replace('custom-', '') : null;
       }
 
-      // Creazione crop reale
-      console.log('[AddCrop] Creating crop:', cropName, 'with custom_crop_id:', customCropId);
       await createCrop({
         name: cropName,
         plants: normalizedPlants,
         custom_crop_id: customCropId,
+        transplant_date: transplantDate || null,
       });
 
-      // Salva data trapianto se fornita
-      if (transplantDate) {
-        console.log('[AddCrop] Saving transplant date:', transplantDate, 'for crop:', cropKey);
-        setCropTransplantDate(cropKey as any, transplantDate);
-      }
-
-      console.log('[AddCrop] Crop created successfully, navigating to dashboard');
       router.push('/dashboard');
     } catch (err) {
       console.error('[AddCrop] Error saving crop:', err);
