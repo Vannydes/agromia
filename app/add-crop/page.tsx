@@ -85,6 +85,7 @@ export default function AddCropPage() {
         plants: normalizedPlants,
         custom_crop_id: customCropId,
         transplant_date: transplantDate || null,
+        selling_price: null,
       });
 
       router.push('/dashboard');

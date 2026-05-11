@@ -18,6 +18,7 @@ export interface Crop {
   plants: number;
   custom_crop_id?: string | null;
   transplant_date?: string | null;
+  selling_price?: number | null;
   created_at: string;
   updated_at: string;
   custom_crops?: CustomCrop | null;
@@ -69,6 +70,7 @@ export interface CreateCropData {
   plants: number;
   custom_crop_id?: string | null;
   transplant_date?: string | null;
+  selling_price?: number | null;
 }
 
 export interface CreateCustomCropData {
@@ -125,11 +127,12 @@ export async function getUserCrops(): Promise<Crop[]> {
   const user = await getAuthenticatedUser();
   const { data, error } = await supabaseClient
     .from('crops')
-    .select('id, user_id, name, plants, custom_crop_id, transplant_date, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
+    .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (error) {
+    console.error('[Supabase] getUserCrops error:', error);
     throw error;
   }
 
@@ -141,7 +144,7 @@ export async function getCropById(id: string): Promise<Crop | null> {
   const user = await getAuthenticatedUser();
   const { data, error } = await supabaseClient
     .from('crops')
-    .select('id, user_id, name, plants, custom_crop_id, transplant_date, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
+    .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
     .eq('id', id)
     .eq('user_id', user.id)
     .single();
@@ -150,6 +153,7 @@ export async function getCropById(id: string): Promise<Crop | null> {
     if (error.details?.toString().includes('No rows found')) {
       return null;
     }
+    console.error('[Supabase] getCropById error:', error);
     throw error;
   }
 
@@ -164,15 +168,17 @@ export async function createCrop(cropData: CreateCropData): Promise<Crop> {
     plants: cropData.plants,
     custom_crop_id: cropData.custom_crop_id || null,
     transplant_date: cropData.transplant_date || null,
+    selling_price: cropData.selling_price || null,
   };
 
   const { data, error } = await supabaseClient
     .from('crops')
     .insert(payload)
-    .select('id, user_id, name, plants, custom_crop_id, transplant_date, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
+    .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
     .single();
 
   if (error) {
+    console.error('[Supabase] createCrop error:', error);
     throw error;
   }
 
@@ -242,6 +248,7 @@ export async function getCosts(cropId?: string): Promise<Cost[]> {
 
   const { data, error } = await query;
   if (error) {
+    console.error('[Supabase] getCosts error:', error);
     throw error;
   }
 
@@ -262,6 +269,7 @@ export async function addCost(cropId: string, note: string, amount: number): Pro
     .single();
 
   if (error) {
+    console.error('[Supabase] addCost error:', error);
     throw error;
   }
 
@@ -282,6 +290,7 @@ export async function getActivities(cropId?: string): Promise<Activity[]> {
 
   const { data, error } = await query;
   if (error) {
+    console.error('[Supabase] getActivities error:', error);
     throw error;
   }
 
@@ -308,6 +317,7 @@ export async function addActivity(
     .single();
 
   if (error) {
+    console.error('[Supabase] addActivity error:', error);
     throw error;
   }
 
@@ -328,6 +338,7 @@ export async function getHarvests(cropId?: string): Promise<Harvest[]> {
 
   const { data, error } = await query;
   if (error) {
+    console.error('[Supabase] getHarvests error:', error);
     throw error;
   }
 
@@ -354,6 +365,7 @@ export async function addHarvest(
     .single();
 
   if (error) {
+    console.error('[Supabase] addHarvest error:', error);
     throw error;
   }
 

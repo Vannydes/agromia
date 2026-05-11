@@ -7,6 +7,8 @@ export interface Crop {
   name: string;
   plants: number;
   custom_crop_id?: string | null;
+  transplant_date?: string | null;
+  selling_price?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +27,8 @@ export interface CreateCropData {
   name: string;
   plants: number;
   custom_crop_id?: string | null;
+  transplant_date?: string | null;
+  selling_price?: number | null;
 }
 
 export interface CreateCustomCropData {
@@ -60,7 +64,7 @@ export async function getUserCrops(): Promise<Crop[]> {
   try {
     const { data, error } = await supabaseClient
       .from('crops')
-      .select('id, user_id, name, plants, custom_crop_id, created_at, updated_at')
+      .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -80,7 +84,7 @@ export async function getCropById(id: string): Promise<Crop | null> {
   try {
     const { data, error } = await supabaseClient
       .from('crops')
-      .select('id, user_id, name, plants, custom_crop_id, created_at, updated_at')
+      .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at')
       .eq('id', id)
       .eq('user_id', user.id)
       .single();
@@ -109,6 +113,8 @@ export async function createCrop(cropData: CreateCropData): Promise<Crop> {
       name: cropData.name,
       plants: cropData.plants,
       custom_crop_id: cropData.custom_crop_id,
+      transplant_date: cropData.transplant_date || null,
+      selling_price: cropData.selling_price || null,
     })
     .select()
     .single();
