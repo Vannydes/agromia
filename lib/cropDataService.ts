@@ -37,8 +37,9 @@ export interface Cost {
   id: string;
   crop_id: string;
   user_id: string;
-  note: string;
+  title: string;
   amount: number;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -181,7 +182,29 @@ export async function createCrop(cropData: CreateCropData): Promise<Crop> {
     throw error;
   }
 
-  return normalizeCropData(data as Crop & { custom_crops?: CustomCrop[] | null });
+  const crop = normalizeCropData(data as Crop & { custom_crops?: CustomCrop[] | null });
+
+  // Automatically create a "trapianto" activity if transplant_date is provided
+  if (crop.transplant_date) {
+    try {
+      console.log('[Supabase] Creating transplant activity for crop:', crop.id, 'date:', crop.transplant_date);
+      await supabaseClient
+        .from('activities')
+        .insert({
+          crop_id: crop.id,
+          user_id: user.id,
+          type: 'trapianto',
+          date: crop.transplant_date,
+          note: 'Trapianto registrato',
+        });
+      console.log('[Supabase] Transplant activity created successfully');
+    } catch (activityError) {
+      console.error('[Supabase] Failed to create transplant activity:', activityError);
+      // Non lanciamo errore - la coltura è stata creata, ma l'activity no
+    }
+  }
+
+  return crop;
 }
 
 export async function deleteCrop(id: string): Promise<void> {
@@ -254,24 +277,36 @@ export async function getCosts(cropId?: string): Promise<Cost[]> {
   return (data || []) as Cost[];
 }
 
-export async function addCost(cropId: string, note: string, amount: number): Promise<Cost> {
+export async function addCost(cropId: string, title: string, amount: number, notes?: string): Promise<Cost> {
   const user = await getAuthenticatedUser();
+  
+  console.log('[Supabase] addCost request:', { cropId, user_id: user.id, title, amount, notes });
+  
   const { data, error } = await supabaseClient
     .from('costs')
     .insert({
       crop_id: cropId,
       user_id: user.id,
-      note,
+      title,
       amount,
+      notes: notes || null,
     })
     .select()
     .single();
 
   if (error) {
-    console.error('[Supabase] addCost error:', error);
+    console.error('[Supabase] addCost error:', { 
+      error: error.message, 
+      code: error.code, 
+      details: error.details,
+      hint: error.hint,
+      cropId,
+      userId: user.id,
+    });
     throw error;
   }
 
+  console.log('[Supabase] addCost success:', data);
   return data as Cost;
 }
 
@@ -414,4 +449,28 @@ export async function getActivitiesByCrop(cropId: string): Promise<Activity[]> {
 
 export async function getHarvestsByCrop(cropId: string): Promise<Harvest[]> {
   return getHarvests(cropId);
+}
+
+export async function getHarvestsTotalByCrop(): Promise<Record<string, number>> {
+  const user = await getAuthenticatedUser();
+  const { data, error } = await supabaseClient
+    .from('harvests')
+    .select('crop_id, quantity_kg')
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('[Supabase] getHarvestsTotalByCrop error:', error);
+    throw error;
+  }
+
+  const totals: Record<string, number> = {};
+  (data || []).forEach((harvest) => {
+    const key = harvest.crop_id;
+    if (!totals[key]) {
+      totals[key] = 0;
+    }
+    totals[key] += Number(harvest.quantity_kg);
+  });
+
+  return totals;
 }

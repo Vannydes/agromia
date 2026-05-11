@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { getMoonPhase } from '@/lib/moon';
 import TodayPriorityBox from '@/components/dashboard/TodayPriorityBox';
 import { createFeedback } from '@/lib/feedbackService';
-import { getDashboardStats, getUserCrops, type Crop } from '@/lib/cropDataService';
+import { getDashboardStats, getUserCrops, getHarvestsTotalByCrop, type Crop } from '@/lib/cropDataService';
 import { useAuth } from '@/lib/auth-context';
 
 function formatCurrency(value: number) {
@@ -21,6 +21,7 @@ function formatCurrency(value: number) {
 
 export default function DashboardPage() {
   const [cropsData, setCropsData] = useState<Crop[]>([]);
+  const [harvestsByFarmId, setHarvestsByFarmId] = useState<Record<string, number>>({});
   const [totalCosts, setTotalCosts] = useState(0);
   const [totalRealProduction, setTotalRealProduction] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -88,8 +89,12 @@ export default function DashboardPage() {
       setTotalCosts(stats.totalCosts);
       setTotalRealProduction(stats.totalRealProduction);
 
+      const harvestTotals = await getHarvestsTotalByCrop();
+      setHarvestsByFarmId(harvestTotals);
+
       setLoading(false);
     } catch (err) {
+      console.error('[Dashboard] Error loading crops:', err);
       setError(
         err instanceof Error
           ? 'Errore nel caricamento della dashboard. Riprova più tardi.'
@@ -274,11 +279,10 @@ export default function DashboardPage() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           {cropsData.map((crop) => {
-            // For now, we'll use a simplified calculation
-            // In a real app, you'd store the crop type in the database
+            // Calculate production from database harvests
             const estimatedMin = crop.plants * 3; // Simplified calculation
             const estimatedMax = crop.plants * 6; // Simplified calculation
-            const real = 0; // No harvest data in DB yet
+            const real = harvestsByFarmId[crop.id] ?? 0; // Real harvest from Supabase
 
             return (
               <div key={crop.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-6">

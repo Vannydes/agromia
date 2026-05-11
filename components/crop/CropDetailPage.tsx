@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatKg, formatCurrency } from '@/lib/formatting';
+import { formatKg, formatCurrency, formatDate } from '@/lib/formatting';
 import { getCurrentWeather, type Weather } from '@/lib/weather';
 import { generateCropAgronomicTasks, type AgronomicTask } from '@/lib/agronomic-engine';
 import { useAuth } from '@/lib/auth-context';
@@ -422,34 +422,58 @@ export default function CropPage() {
           </button>
         </div>
 
-        <section className="grid gap-6 lg:grid-cols-6">
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Piante</p>
-            <p className="mt-4 text-3xl font-semibold text-slate-900">{crop.plants}</p>
+        <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Piante */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Piante</p>
+            <p className="mt-4 text-4xl font-bold text-slate-900">{crop.plants}</p>
+            <p className="mt-2 text-sm text-slate-600">piante nel tuo orto</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Spaziatura</p>
-            <p className="mt-4 text-3xl font-semibold text-slate-900">{crop.spacing} cm</p>
+
+          {/* Spaziatura */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Spaziatura</p>
+            <p className="mt-4 text-4xl font-bold text-slate-900">{crop.spacing}</p>
+            <p className="mt-2 text-sm text-slate-600">centimetri tra le piante</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Data trapianto</p>
-            <p className="mt-4 text-3xl font-semibold text-slate-900">{crop.transplant_date ?? 'Non disponibile'}</p>
+
+          {/* Data trapianto */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Data trapianto</p>
+            <p className="mt-4 text-xl font-bold text-slate-900">{formatDate(crop.transplant_date)}</p>
+            <p className="mt-2 text-sm text-slate-600">inizio della coltivazione</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Stimato</p>
-            <p className="mt-4 text-3xl font-semibold text-slate-900">{formatKg(estimatedMin)} - {formatKg(estimatedMax)}</p>
+
+          {/* Produzione stimata */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Stimato</p>
+            <p className="mt-4 text-3xl font-bold text-slate-900">{formatKg(estimatedMin)} - {formatKg(estimatedMax)}</p>
+            <p className="mt-2 text-sm text-slate-600">produzione attesa</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Reale</p>
-            <p className="mt-4 text-3xl font-semibold text-slate-900">{formatKg(Number(totalKg))}</p>
+
+          {/* Produzione reale */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Raccolto reale</p>
+            <p className="mt-4 text-3xl font-bold text-emerald-600">{formatKg(Number(totalKg))}</p>
+            <p className="mt-2 text-sm text-slate-600">prodotto raccolto</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Ricavi</p>
-            <p className="mt-4 text-3xl font-semibold text-green-600">{formatCurrency(revenue)}</p>
+
+          {/* Ricavi */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Ricavi</p>
+            <p className="mt-4 text-3xl font-bold text-slate-900">{formatCurrency(revenue)}</p>
+            <p className="mt-2 text-sm text-slate-600">valore di vendita</p>
           </div>
-          <div className="rounded-3xl border-2 border-green-300 bg-green-50 p-8 shadow-md transition hover:shadow-lg">
-            <p className="text-sm uppercase tracking-[0.3em] text-green-700 font-medium">Profitto</p>
-            <p className={`mt-4 text-4xl font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(profit)}</p>
+
+          {/* Profitto - evidenziato */}
+          <div className="md:col-span-2 lg:col-span-1 rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 shadow-md hover:shadow-lg transition">
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">Profitto netto</p>
+            <p className={`mt-4 text-4xl font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatCurrency(profit)}
+            </p>
+            <p className="mt-2 text-sm text-emerald-700 font-medium">
+              {profit >= 0 ? '✓ Raccolto redditizio' : '⚠ Perdita registrata'}
+            </p>
           </div>
         </section>
 
@@ -616,7 +640,7 @@ export default function CropPage() {
                   costs.map((cost) => (
                     <div key={cost.id} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{cost.note}</span>
+                        <span className="text-sm font-medium text-slate-700">{cost.title}</span>
                         <span className="font-semibold text-red-600">{formatCurrency(cost.amount)}</span>
                       </div>
                     </div>

@@ -41,3 +41,23 @@ export function formatCount(value: number): string {
   }
   return new Intl.NumberFormat('it-IT').format(value);
 }
+
+/**
+ * Format a date string in Italian format
+ * Example: formatDate('2026-05-11') => "11 maggio 2026"
+ */
+export function formatDate(dateString?: string | null): string {
+  if (!dateString) {
+    return 'Non disponibile';
+  }
+  try {
+    const date = new Date(dateString + 'T00:00:00Z');
+    return new Intl.DateTimeFormat('it-IT', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
+  } catch {
+    return dateString;
+  }
+}

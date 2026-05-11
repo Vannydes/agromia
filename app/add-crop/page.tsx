@@ -19,6 +19,7 @@ export default function AddCropPage() {
   const [transplantDate, setTransplantDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   const [customCrops, setCustomCrops] = useState<CustomCrop[]>([]);
   const [isCreatingCustom, setIsCreatingCustom] = useState(false);
@@ -88,7 +89,8 @@ export default function AddCropPage() {
         selling_price: null,
       });
 
-      router.push('/dashboard');
+      setSuccessMessage('Coltura creata con successo. Reindirizzamento alla dashboard...');
+      window.setTimeout(() => router.push('/dashboard'), 800);
     } catch (err) {
       console.error('[AddCrop] Error saving crop:', err);
       setError(err instanceof Error ? err.message : 'Errore durante il salvataggio');
@@ -115,6 +117,11 @@ export default function AddCropPage() {
     <main className="min-h-screen bg-beige px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl space-y-8">
         <div className="space-y-4 rounded-3xl border border-olive/15 bg-white p-6 shadow-sm">
+          {successMessage ? (
+            <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+              {successMessage}
+            </div>
+          ) : null}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.3em] text-olive/80">Aggiungi coltura</p>
