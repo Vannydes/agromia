@@ -404,6 +404,124 @@ export async function addHarvest(
   return data as Harvest;
 }
 
+export async function updateCrop(id: string, updates: Partial<CreateCropData>): Promise<Crop> {
+  const { data, error } = await supabaseClient
+    .from('crops')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
+    .single();
+
+  if (error) {
+    console.error('[Supabase] updateCrop error:', error);
+    throw error;
+  }
+
+  return normalizeCropData(data as Crop & { custom_crops?: CustomCrop[] | null });
+}
+
+export async function updateCost(id: string, updates: Partial<Pick<Cost, 'title' | 'amount' | 'notes'>>): Promise<Cost> {
+  const { data, error } = await supabaseClient
+    .from('costs')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Supabase] updateCost error:', error);
+    throw error;
+  }
+
+  return data as Cost;
+}
+
+export async function deleteCost(id: string): Promise<void> {
+  const { error } = await supabaseClient
+    .from('costs')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('[Supabase] deleteCost error:', error);
+    throw error;
+  }
+}
+
+export async function updateActivity(
+  id: string,
+  updates: Partial<Pick<Activity, 'activity_type' | 'activity_date' | 'notes'>>
+): Promise<Activity> {
+  const { data, error } = await supabaseClient
+    .from('activities')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Supabase] updateActivity error:', error);
+    throw error;
+  }
+
+  return data as Activity;
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  const { error } = await supabaseClient
+    .from('activities')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('[Supabase] deleteActivity error:', error);
+    throw error;
+  }
+}
+
+export async function updateHarvest(
+  id: string,
+  updates: Partial<Pick<Harvest, 'quantity_kg' | 'notes'>>
+): Promise<Harvest> {
+  const { data, error } = await supabaseClient
+    .from('harvests')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[Supabase] updateHarvest error:', error);
+    throw error;
+  }
+
+  return data as Harvest;
+}
+
+export async function deleteHarvest(id: string): Promise<void> {
+  const { error } = await supabaseClient
+    .from('harvests')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('[Supabase] deleteHarvest error:', error);
+    throw error;
+  }
+}
+
 export async function getUserTotalCosts(): Promise<number> {
   const costs = await getCosts();
   return costs.reduce((sum, cost) => sum + Number(cost.amount), 0);

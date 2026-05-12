@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { getMoonPhase } from '@/lib/moon';
 import TodayPriorityBox from '@/components/dashboard/TodayPriorityBox';
 import { createFeedback } from '@/lib/feedbackService';
 import { getDashboardStats, getUserCrops, getHarvestsTotalByCrop, type Crop } from '@/lib/cropDataService';
+import { supabaseClient } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/auth-context';
 
 function formatCurrency(value: number) {
@@ -72,7 +73,7 @@ export default function DashboardPage() {
     }
   };
 
-  const loadCrops = async () => {
+  const loadCrops = useCallback(async () => {
     const timeoutId = setTimeout(() => {
       setLoading(false);
       setError('Il caricamento della dashboard ha superato il tempo massimo. Riprova.');
@@ -104,7 +105,7 @@ export default function DashboardPage() {
     } finally {
       clearTimeout(timeoutId);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (authLoading) {
@@ -117,7 +118,30 @@ export default function DashboardPage() {
     }
 
     loadCrops();
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, loadCrops]);
+
+  useEffect(() => {
+    if (authLoading || !user) {
+      return;
+    }
+
+    const channel = supabaseClient
+      .channel('realtime-dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'crops' }, () => {
+        loadCrops();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'costs' }, () => {
+        loadCrops();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'harvests' }, () => {
+        loadCrops();
+      })
+      .subscribe();
+
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, [authLoading, user, loadCrops]);
 
   const totalPlants = useMemo(
     () => cropsData.reduce((sum, crop) => sum + crop.plants, 0),

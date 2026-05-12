@@ -18,6 +18,13 @@ import {
   getActivitiesByCrop,
   getCropById,
   deleteCrop,
+  updateCrop,
+  updateCost,
+  deleteCost,
+  updateActivity,
+  deleteActivity,
+  updateHarvest,
+  deleteHarvest,
   type Crop,
   type Cost,
   type Harvest,
@@ -52,7 +59,7 @@ function createCropDetail(crop: Crop): CropDetail {
     spacing: custom?.spacing_cm ?? config?.spacing ?? 50,
     yieldMin: custom ? Number(custom.min_yield) : config?.yieldMin ?? 3,
     yieldMax: custom ? Number(custom.max_yield) : config?.yieldMax ?? 6,
-    pricePerKg: 2.5,
+    pricePerKg: Number(crop.selling_price ?? 2.5),
   };
 }
 
@@ -72,6 +79,20 @@ export default function CropPage() {
   const [costNote, setCostNote] = useState('');
   const [error, setError] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
+  const [isEditingCrop, setIsEditingCrop] = useState(false);
+  const [editCropName, setEditCropName] = useState('');
+  const [editCropPlants, setEditCropPlants] = useState('');
+  const [editCropTransplantDate, setEditCropTransplantDate] = useState('');
+  const [editCropSellingPrice, setEditCropSellingPrice] = useState('');
+  const [editingCostId, setEditingCostId] = useState<string | null>(null);
+  const [editCostTitle, setEditCostTitle] = useState('');
+  const [editCostAmount, setEditCostAmount] = useState('');
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [editActivityType, setEditActivityType] = useState<Activity['activity_type']>('trapianto');
+  const [editActivityDate, setEditActivityDate] = useState('');
+  const [editingHarvestId, setEditingHarvestId] = useState<string | null>(null);
+  const [editHarvestKg, setEditHarvestKg] = useState('');
+  const [editHarvestNotes, setEditHarvestNotes] = useState('');
   const [eventType, setEventType] = useState<Activity['activity_type']>('trapianto');
   const [activityDate, setActivityDate] = useState(
     new Date().toISOString().split('T')[0]
@@ -158,9 +179,42 @@ export default function CropPage() {
     loadCrop();
   }, [authLoading, user, cropIdFromParams]);
 
+  const refreshCropAndLists = async () => {
+    if (!crop) return;
+
+    try {
+      const updated = await getCropById(crop.id);
+      if (updated) {
+        const detail = createCropDetail(updated);
+        setCrop(detail);
+        setPricePerKg(detail.pricePerKg.toString());
+        setEditCropName(detail.name);
+        setEditCropPlants(detail.plants.toString());
+        setEditCropTransplantDate(detail.transplant_date ?? '');
+        setEditCropSellingPrice((detail.selling_price ?? 2.5).toString());
+      }
+
+      const [updatedCosts, updatedHarvests, updatedActivities] = await Promise.all([
+        getCostsByCrop(crop.id),
+        getHarvestsByCrop(crop.id),
+        getActivitiesByCrop(crop.id),
+      ]);
+
+      setCosts(updatedCosts);
+      setHarvests(updatedHarvests);
+      setActivities(updatedActivities);
+    } catch (err) {
+      console.error('[Crop] refresh error:', err);
+    }
+  };
+
   useEffect(() => {
     if (crop) {
       setPricePerKg((crop.pricePerKg ?? 2.5).toString());
+      setEditCropName(crop.name);
+      setEditCropPlants(crop.plants.toString());
+      setEditCropTransplantDate(crop.transplant_date ?? '');
+      setEditCropSellingPrice((crop.selling_price ?? 2.5).toString());
     }
   }, [crop]);
 
@@ -279,7 +333,50 @@ export default function CropPage() {
     }
   };
 
-  const handleUpdatePrice = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveCropDetails = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+
+    if (!crop) {
+      return;
+    }
+
+    const plants = Number(editCropPlants);
+    const sellingPrice = Number(editCropSellingPrice);
+    if (!editCropName.trim()) {
+      setError('Inserisci il nome della coltura.');
+      return;
+    }
+
+    if (Number.isNaN(plants) || plants <= 0) {
+      setError('Inserisci un numero piante valido.');
+      return;
+    }
+
+    if (Number.isNaN(sellingPrice) || sellingPrice < 0) {
+      setError('Inserisci un prezzo di vendita valido.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateCrop(crop.id, {
+        name: editCropName.trim(),
+        plants,
+        transplant_date: editCropTransplantDate || null,
+        selling_price: sellingPrice,
+      });
+      await refreshCropAndLists();
+      setIsEditingCrop(false);
+    } catch (err) {
+      console.error('[Crop] Error updating crop:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento della coltura');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdatePrice = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
 
@@ -293,12 +390,178 @@ export default function CropPage() {
       return;
     }
 
-    const updatedCrop: CropDetail = {
-      ...crop,
-      pricePerKg: price,
-    };
+    setIsSubmitting(true);
+    try {
+      await updateCrop(crop.id, {
+        selling_price: price,
+      });
+      await refreshCropAndLists();
+    } catch (err) {
+      console.error('[Crop] Error updating price:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento del prezzo');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    setCrop(updatedCrop);
+  const handleEditCost = (cost: Cost) => {
+    setEditingCostId(cost.id);
+    setEditCostTitle(cost.title);
+    setEditCostAmount(cost.amount.toString());
+  };
+
+  const handleSaveCost = async (costId: string) => {
+    setError('');
+    const amount = Number(editCostAmount);
+
+    if (!editCostTitle.trim()) {
+      setError('Inserisci una nota per il costo.');
+      return;
+    }
+    if (Number.isNaN(amount) || amount <= 0) {
+      setError('Inserisci un importo valido.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateCost(costId, {
+        title: editCostTitle.trim(),
+        amount,
+      });
+      if (crop) {
+        const updatedCosts = await getCostsByCrop(crop.id);
+        setCosts(updatedCosts);
+      }
+      setEditingCostId(null);
+    } catch (err) {
+      console.error('[Crop] Error updating cost:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento del costo');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteCost = async (costId: string) => {
+    const confirmed = window.confirm('Sei sicuro di voler eliminare questo costo?');
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+    try {
+      await deleteCost(costId);
+      if (crop) {
+        const updatedCosts = await getCostsByCrop(crop.id);
+        setCosts(updatedCosts);
+      }
+    } catch (err) {
+      console.error('[Crop] Error deleting cost:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante l\'eliminazione del costo');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditActivity = (activity: Activity) => {
+    setEditingActivityId(activity.id);
+    setEditActivityType(activity.activity_type);
+    setEditActivityDate(activity.activity_date);
+  };
+
+  const handleSaveActivity = async (activityId: string) => {
+    setError('');
+    if (!editActivityDate.trim()) {
+      setError('Seleziona una data valida.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateActivity(activityId, {
+        activity_type: editActivityType,
+        activity_date: editActivityDate,
+      });
+      if (crop) {
+        const updatedActivities = await getActivitiesByCrop(crop.id);
+        setActivities(updatedActivities);
+      }
+      setEditingActivityId(null);
+    } catch (err) {
+      console.error('[Crop] Error updating activity:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento dell\'attività');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteActivity = async (activityId: string) => {
+    const confirmed = window.confirm('Sei sicuro di voler eliminare questa attività?');
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+    try {
+      await deleteActivity(activityId);
+      if (crop) {
+        const updatedActivities = await getActivitiesByCrop(crop.id);
+        setActivities(updatedActivities);
+      }
+    } catch (err) {
+      console.error('[Crop] Error deleting activity:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante l\'eliminazione dell\'attività');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditHarvest = (harvest: Harvest) => {
+    setEditingHarvestId(harvest.id);
+    setEditHarvestKg(harvest.quantity_kg.toString());
+    setEditHarvestNotes(harvest.notes ?? '');
+  };
+
+  const handleSaveHarvest = async (harvestId: string) => {
+    setError('');
+    const quantity = Number(editHarvestKg);
+    if (Number.isNaN(quantity) || quantity <= 0) {
+      setError('Inserisci una quantità valida.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateHarvest(harvestId, {
+        quantity_kg: quantity,
+        notes: editHarvestNotes.trim() || null,
+      });
+      if (crop) {
+        const updatedHarvests = await getHarvestsByCrop(crop.id);
+        setHarvests(updatedHarvests);
+      }
+      setEditingHarvestId(null);
+    } catch (err) {
+      console.error('[Crop] Error updating harvest:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento del raccolto');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteHarvest = async (harvestId: string) => {
+    const confirmed = window.confirm('Sei sicuro di voler eliminare questo raccolto?');
+    if (!confirmed) return;
+
+    setIsSubmitting(true);
+    try {
+      await deleteHarvest(harvestId);
+      if (crop) {
+        const updatedHarvests = await getHarvestsByCrop(crop.id);
+        setHarvests(updatedHarvests);
+      }
+    } catch (err) {
+      console.error('[Crop] Error deleting harvest:', err);
+      setError(err instanceof Error ? err.message : 'Errore durante l\'eliminazione del raccolto');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddEvent = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -420,6 +683,58 @@ export default function CropPage() {
           >
             Elimina coltura
           </button>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Modifica coltura</h2>
+              <p className="mt-2 text-slate-600">Aggiorna nome, numero piante, data trapianto e prezzo di vendita.</p>
+            </div>
+            <Button type="button" variant="outline" onClick={() => setIsEditingCrop((prev) => !prev)}>
+              {isEditingCrop ? 'Chiudi modifica' : 'Modifica'}
+            </Button>
+          </div>
+          {isEditingCrop ? (
+            <form onSubmit={handleSaveCropDetails} className="mt-6 grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Nome coltura"
+                type="text"
+                value={editCropName}
+                onChange={(event) => setEditCropName(event.target.value)}
+                disabled={isSubmitting}
+              />
+              <Input
+                label="Numero piante"
+                type="number"
+                min="1"
+                value={editCropPlants}
+                onChange={(event) => setEditCropPlants(event.target.value)}
+                disabled={isSubmitting}
+              />
+              <Input
+                label="Data trapianto"
+                type="date"
+                value={editCropTransplantDate}
+                onChange={(event) => setEditCropTransplantDate(event.target.value)}
+                disabled={isSubmitting}
+              />
+              <Input
+                label="Prezzo vendita (€)"
+                type="number"
+                step="0.01"
+                min="0"
+                value={editCropSellingPrice}
+                onChange={(event) => setEditCropSellingPrice(event.target.value)}
+                disabled={isSubmitting}
+              />
+              <div className="sm:col-span-2 flex justify-end">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Salvataggio...' : 'Salva modifiche'}
+                </Button>
+              </div>
+            </form>
+          ) : null}
         </div>
 
         <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -619,10 +934,49 @@ export default function CropPage() {
                 ) : (
                   harvests.map((harvest) => (
                     <div key={harvest.id} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{harvest.created_at}</span>
-                        <span className="font-semibold text-green-600">{formatKg(harvest.quantity_kg)}</span>
-                      </div>
+                      {editingHarvestId === harvest.id ? (
+                        <div className="space-y-3">
+                          <Input
+                            label="Quantità (kg)"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={editHarvestKg}
+                            onChange={(event) => setEditHarvestKg(event.target.value)}
+                            disabled={isSubmitting}
+                          />
+                          <Input
+                            label="Nota"
+                            type="text"
+                            value={editHarvestNotes}
+                            onChange={(event) => setEditHarvestNotes(event.target.value)}
+                            disabled={isSubmitting}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button type="button" variant="outline" onClick={() => setEditingHarvestId(null)} disabled={isSubmitting}>
+                              Annulla
+                            </Button>
+                            <Button type="button" onClick={() => handleSaveHarvest(harvest.id)} disabled={isSubmitting}>
+                              Salva
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-medium text-slate-700">{harvest.created_at}</span>
+                            <span className="font-semibold text-green-600">{formatKg(harvest.quantity_kg)}</span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" variant="outline" onClick={() => handleEditHarvest(harvest)}>
+                              Modifica
+                            </Button>
+                            <Button type="button" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleDeleteHarvest(harvest.id)}>
+                              Elimina
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))
                 )}
@@ -639,10 +993,119 @@ export default function CropPage() {
                 ) : (
                   costs.map((cost) => (
                     <div key={cost.id} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-slate-700">{cost.title}</span>
-                        <span className="font-semibold text-red-600">{formatCurrency(cost.amount)}</span>
-                      </div>
+                      {editingCostId === cost.id ? (
+                        <div className="space-y-3">
+                          <Input
+                            label="Descrizione"
+                            type="text"
+                            value={editCostTitle}
+                            onChange={(event) => setEditCostTitle(event.target.value)}
+                            disabled={isSubmitting}
+                          />
+                          <Input
+                            label="Importo (€)"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editCostAmount}
+                            onChange={(event) => setEditCostAmount(event.target.value)}
+                            disabled={isSubmitting}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button type="button" variant="outline" onClick={() => setEditingCostId(null)} disabled={isSubmitting}>
+                              Annulla
+                            </Button>
+                            <Button type="button" onClick={() => handleSaveCost(cost.id)} disabled={isSubmitting}>
+                              Salva
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-700">{cost.title}</span>
+                            <span className="font-semibold text-red-600">{formatCurrency(cost.amount)}</span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" variant="outline" onClick={() => handleEditCost(cost)}>
+                              Modifica
+                            </Button>
+                            <Button type="button" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleDeleteCost(cost.id)}>
+                              Elimina
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+              <h3 className="text-xl font-semibold text-slate-900">Attività salvate</h3>
+              <div className="mt-6 space-y-3">
+                {activities.length === 0 ? (
+                  <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
+                    Nessuna attività registrata. Aggiungi irrigazioni, trattamenti e interventi manuali.
+                  </div>
+                ) : (
+                  activities.map((activity) => (
+                    <div key={activity.id} className="rounded-2xl bg-slate-50 border border-slate-200 p-4 transition hover:bg-slate-100">
+                      {editingActivityId === activity.id ? (
+                        <div className="space-y-3">
+                          <label className="block space-y-2 text-sm font-medium text-slate-700">
+                            Tipo attività
+                            <select
+                              value={editActivityType}
+                              onChange={(event) => setEditActivityType(event.target.value as Activity['activity_type'])}
+                              disabled={isSubmitting}
+                              className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
+                            >
+                              <option value="trapianto">Trapianto</option>
+                              <option value="semina">Semina</option>
+                              <option value="concimazione">Concimazione</option>
+                              <option value="irrigazione">Irrigazione</option>
+                              <option value="raccolta">Raccolta</option>
+                            </select>
+                          </label>
+                          <Input
+                            label="Data attività"
+                            type="date"
+                            value={editActivityDate}
+                            onChange={(event) => setEditActivityDate(event.target.value)}
+                            disabled={isSubmitting}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button type="button" variant="outline" onClick={() => setEditingActivityId(null)} disabled={isSubmitting}>
+                              Annulla
+                            </Button>
+                            <Button type="button" onClick={() => handleSaveActivity(activity.id)} disabled={isSubmitting}>
+                              Salva
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-700">
+                              {activity.activity_type}
+                            </span>
+                            <span className="text-sm text-slate-500">{new Date(activity.activity_date).toLocaleDateString('it-IT')}</span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2 items-center justify-between">
+                            <p className="text-sm text-slate-700">{activity.notes || activity.activity_type}</p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button type="button" variant="outline" onClick={() => handleEditActivity(activity)}>
+                                Modifica
+                              </Button>
+                              <Button type="button" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleDeleteActivity(activity.id)}>
+                                Elimina
+                              </Button>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))
                 )}
