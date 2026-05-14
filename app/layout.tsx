@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: 'Agromia | Coltiva il tuo orto con semplicità',
   description: 'Prenditi cura del tuo orto senza stress. Monitora i tuoi progressi, impara dai raccolti e guarda crescere il frutto del tuo lavoro',
 
+  verification: {
+    google: '3OO5mxkchyoOZwouIz9_1BcutyrR4Mu5KVqjRa0sNnY',
+  },
+
   openGraph: {
     title: 'Agromia',
     description: 'Dalla semina al raccolto, Agromia ti accompagna in ogni stagione. Segui la luna, il meteo e tieni d’occhio i tuoi successi.',
