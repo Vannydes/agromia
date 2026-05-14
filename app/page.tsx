@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Calculator } from '@/components/Calculator';
-import { Footer } from '@/components/layout/Footer';
+import { cropKeys, crops } from '@/lib/crops';
 import Image from 'next/image';
 
 export default function HomePage() {
@@ -147,7 +147,6 @@ export default function HomePage() {
           </div>
         </section>
       </div>
-      <Footer />
     </main>
   );
 }
