@@ -99,8 +99,8 @@ export async function getWeatherForRome(): Promise<WeatherData | null> {
  */
 export async function getWeatherFromGeolocation(): Promise<WeatherData | null> {
   return new Promise(async (resolve) => {
-    // Check if geolocation is supported
-    if (!navigator.geolocation) {
+    // Check if geolocation is supported in the current browser environment
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
       const romeWeather = await getWeatherForRome();
       resolve(romeWeather);
       return;

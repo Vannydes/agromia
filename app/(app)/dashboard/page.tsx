@@ -64,7 +64,7 @@ export default function DashboardPage() {
       setFeedbackSuccess('Grazie! Il tuo suggerimento è stato inviato.');
       setFeedbackMessage('');
       closeFeedback();
-      window.setTimeout(() => setFeedbackSuccess(null), 7000);
+      setTimeout(() => setFeedbackSuccess(null), 7000);
     } catch (err) {
       console.error('[Dashboard] Feedback submit error:', err);
       setFeedbackError('Impossibile inviare il suggerimento. Riprova più tardi.');
@@ -187,7 +187,7 @@ export default function DashboardPage() {
           <h2 className="text-xl font-semibold text-red-900">Errore</h2>
           <p className="mt-2 text-red-700">{error}</p>
           <Button
-            onClick={() => window.location.reload()}
+            onClick={() => router.refresh()}
             className="mt-4"
           >
             Riprova

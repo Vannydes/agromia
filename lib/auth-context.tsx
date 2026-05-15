@@ -106,7 +106,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setLoading(false);
 
-    window.location.href = '/';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   const value = {

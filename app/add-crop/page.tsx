@@ -90,7 +90,7 @@ export default function AddCropPage() {
       });
 
       setSuccessMessage('Coltura creata con successo. Reindirizzamento alla dashboard...');
-      window.setTimeout(() => router.push('/dashboard'), 800);
+      setTimeout(() => router.push('/dashboard'), 800);
     } catch (err) {
       console.error('[AddCrop] Error saving crop:', err);
       setError(err instanceof Error ? err.message : 'Errore durante il salvataggio');

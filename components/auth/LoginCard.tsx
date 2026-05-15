@@ -34,7 +34,7 @@ export function LoginCard() {
       }
 
       console.log('[LOGIN] success, redirecting to dashboard');
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     } catch (err) {
       console.error('[LOGIN] error', err);
       setError('Si è verificato un errore durante il login. Riprova più tardi.');
