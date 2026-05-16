@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { getCurrentWeather, type Weather } from '@/lib/weather';
-import type { Crop } from '@/lib/cropDataService';
+import type { Crop } from '@/lib/cropService';
 import { generateAgronomicTasks, type AgronomicTask } from '@/lib/agronomic-engine';
 
 type Props = {

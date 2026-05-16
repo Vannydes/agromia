@@ -16,7 +16,7 @@ export function Navbar() {
         <Link href="/" className="text-xl font-semibold tracking-tight text-olive">
           Agromia
         </Link>
-        <nav className="flex items-center gap-4 text-sm text-slate-700">
+        <nav className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
           {user ? (
             <>
               <span className="text-olive font-medium">{user.email}</span>

@@ -1,6 +1,6 @@
-import type { Activity } from '@/lib/cropDataService';
+import type { Activity, ActivityType } from '@/lib/cropDataService';
 
-const activityStyles: Record<Activity['activity_type'], string> = {
+const activityStyles: Record<ActivityType, string> = {
   semina: 'bg-emerald-100 text-emerald-800',
   trapianto: 'bg-sky-100 text-sky-800',
   concimazione: 'bg-orange-100 text-orange-800',

@@ -1,0 +1,40 @@
+﻿1: 'use client';
+2: 
+3: import { useEffect, useMemo, useState } from 'react';
+4: import { useParams, useRouter } from 'next/navigation';
+5: import Link from 'next/link';
+6: import { Button } from '@/components/ui/button';
+7: import { Input } from '@/components/ui/input';
+8: import { formatKg, formatCurrency, formatDate } from '@/lib/formatting';
+9: import { getCurrentWeather, type Weather } from '@/lib/weather';
+10: import { generateCropAgronomicTasks, type AgronomicTask } from '@/lib/agronomic-engine';
+11: import { useAuth } from '@/lib/auth-context';
+12: import { getCropById, deleteCrop, updateCrop, type Crop } from '@/lib/cropService';
+13: import {
+14:   addCost,
+15:   addHarvest,
+16:   addActivity,
+17:   getCostsByCrop,
+18:   getHarvestsByCrop,
+19:   getActivitiesByCrop,
+20:   updateCost,
+21:   deleteCost,
+22:   updateActivity,
+23:   deleteActivity,
+24:   updateHarvest,
+25:   deleteHarvest,
+26:   type Cost,
+27:   type Harvest,
+28:   type Activity,
+29: } from '@/lib/cropDataService';
+30: import { crops } from '@/lib/crops';
+31: 
+32: type TimelineEvent = {
+33:   type: Activity['type'] | 'raccolta';
+34:   note: string;
+35:   date: string;
+36:   id?: string;
+37: };
+38: 
+39: type CropDetail = Crop & {
+40:   spacing: number;

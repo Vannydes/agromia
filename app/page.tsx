@@ -1,29 +1,44 @@
 import { Button } from '@/components/ui/button';
 import { Calculator } from '@/components/Calculator';
-import { cropKeys, crops } from '@/lib/crops';
+import { HeroProgressBadge } from '@/components/HeroProgressBadge';
+import { InteractiveDemo } from '@/components/InteractiveDemo';
+import { AgromiaNewsFeed } from '@/components/AgromiaNewsFeed';
 import Image from 'next/image';
+
+export const metadata = {
+  title: 'Agromia | Demo Orto Interattiva',
+  description:
+    'Simula il tuo orto, la produzione ortaggi e il raccolto stimato prima di registrarti. Scopri come gestire il calendario agricolo e la coltivazione con Agromia.',
+};
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10 sm:px-6 lg:px-10 overflow-x-hidden">
-      <div className="mx-auto max-w-6xl space-y-14">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-xl">
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
-            <div className="space-y-6">
+    <main className="min-h-screen bg-slate-100 px-3 py-6 sm:px-6 sm:py-10 lg:px-10 overflow-x-hidden">
+      <div className="mx-auto max-w-6xl space-y-8 sm:space-y-12 lg:space-y-14">
+        <section className="rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 bg-white p-6 sm:p-10 shadow-xl">
+          <div className="grid gap-6 sm:gap-8 lg:grid-cols-2 lg:items-center">
+            <div className="space-y-4 sm:space-y-6">
               <div>
                 <p className="text-sm uppercase tracking-[0.3em] text-olive/80 font-semibold">Agromia</p>
                 <h1 className="mt-2 text-4xl font-bold text-slate-900 sm:text-5xl">
                   Gestisci il tuo orto in modo semplice e concreto
                 </h1>
+                <p className="mt-4 text-xl font-semibold text-olive leading-relaxed">
+                  Trasforma dati e attività del tuo orto in raccolti reali.
+                </p>
               </div>
               <p className="text-lg leading-8 text-slate-600">
   Agromia: l&apos;app pensata per chi ama la terra. Monitora i tuoi successi, tieni d&apos;occhio i costi e goditi ogni raccolto: tutto quello che serve al tuo orto, in pochi semplici clic.
 </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Button href="/dashboard">Vai alla dashboard</Button>
-                <Button href="/crop/pomodoro" className="bg-slate-900 hover:bg-slate-800">
-                  Guarda una scheda
-                </Button>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Button href="/dashboard">Vai alla dashboard</Button>
+                  <Button href="/crop/pomodoro" className="bg-slate-900 hover:bg-slate-800">
+                    Guarda una scheda
+                  </Button>
+                </div>
+
+                <HeroProgressBadge />
               </div>
             </div>
             <div className="relative rounded-[2rem] overflow-hidden max-w-md mx-auto lg:max-w-none">
@@ -40,13 +55,38 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Use Cases Section */}
-        <section className="space-y-6">
-          <div>
-            <h2 className="text-3xl font-bold text-slate-900">Tre modi per usare Agromia</h2>
-            <p className="mt-2 text-slate-600">Scopri come semplificare la gestione del tuo orto</p>
+        <section className="rounded-[1.75rem] border border-emerald-100 bg-gradient-to-r from-emerald-50 to-green-50 p-8 shadow-sm">
+          <div className="flex flex-col items-center justify-center gap-6 text-center sm:flex-row sm:justify-around">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-3xl font-bold text-olive">2.500+</p>
+              <p className="text-sm font-medium text-slate-600">Ortaggi monitorati</p>
+            </div>
+            <div className="hidden h-12 w-px bg-slate-200 sm:block"></div>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-3xl font-bold text-olive">98%</p>
+              <p className="text-sm font-medium text-slate-600">Valutazione accuracy</p>
+            </div>
+            <div className="hidden h-12 w-px bg-slate-200 sm:block"></div>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-3xl font-bold text-olive">🌱</p>
+              <p className="text-sm font-medium text-slate-600">Coltivatori in Italia</p>
+            </div>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
+        </section>
+
+        <InteractiveDemo />
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl">
+          <AgromiaNewsFeed limit={3} title="Notizie agricole in evidenza" subtitle="Aggiornamenti rapidi su meteo, raccolti e agricoltura biologica." />
+        </div>
+
+        {/* Use Cases Section */}
+        <section className="space-y-4 sm:space-y-6">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Tre modi per usare Agromia</h2>
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-600">Scopri come semplificare la gestione del tuo orto</p>
+          </div>
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
             {/* Use Case 1 */}
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-lg hover:shadow-xl transition max-w-full overflow-hidden">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-olive/10 flex-shrink-0">
@@ -92,16 +132,16 @@ export default function HomePage() {
         <Calculator />
 
         {/* Emotional Final Section */}
-        <section className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-50 to-green-50 p-10 shadow-xl max-w-full overflow-hidden">
-          <div className="space-y-8">
+        <section className="rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-50 to-green-50 p-6 sm:p-10 shadow-xl max-w-full overflow-hidden">
+          <div className="space-y-6 sm:space-y-8">
             <div className="max-w-2xl">
-              <h2 className="text-4xl font-bold text-slate-900">Coltiva meglio, senza complicarti la giornata</h2>
-              <p className="mt-4 text-lg leading-8 text-slate-700">
+              <h2 className="text-2xl sm:text-4xl font-bold text-slate-900">Coltiva meglio, senza complicarti la giornata</h2>
+              <p className="mt-3 sm:mt-4 text-base sm:text-lg leading-7 sm:leading-8 text-slate-700">
                 Agromia nasce per aiutarti a seguire il tuo orto in modo semplice. Meno fogli sparsi, meno calcoli a mano, più tempo per coltivare davvero.
               </p>
             </div>
             
-            <div className="grid gap-6 sm:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-3">
               <div className="flex gap-4">
                 <div className="flex-shrink-0">
                   <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-emerald-100 text-emerald-700 text-xl">
@@ -110,7 +150,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">Tieni tutto sotto controllo</h3>
-                  <p className="mt-2 text-sm text-slate-600">Tutte le tue colture, i costi e i raccolti in un unico posto.</p>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-600">Tutte le tue colture, i costi e i raccolti in un unico posto.</p>
                 </div>
               </div>
               
@@ -122,7 +162,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">Segui meteo e attività</h3>
-                  <p className="mt-2 text-sm text-slate-600">Scopri cosa fare ogni giorno in base al clima e allo stato delle tue piante.</p>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-600">Scopri cosa fare ogni giorno in base al clima e allo stato delle tue piante.</p>
                 </div>
               </div>
               
@@ -134,13 +174,13 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">Monitora i risultati</h3>
-                  <p className="mt-2 text-sm text-slate-600">Raccolti, costi, profitti: i dati che contano davvero per il tuo orto.</p>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-600">Raccolti, costi, profitti: i dati che contano davvero per il tuo orto.</p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-4">
-              <Button href="/dashboard" className="px-8 py-4 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700">
+            <div className="pt-2 sm:pt-4">
+              <Button href="/dashboard" className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold bg-emerald-600 hover:bg-emerald-700">
                 Inizia il tuo orto
               </Button>
             </div>

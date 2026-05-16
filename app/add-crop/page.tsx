@@ -10,7 +10,7 @@ import {
   getUserCustomCrops,
   createCustomCrop,
   type CustomCrop,
-} from '@/lib/cropDataService';
+} from '@/lib/cropService';
 
 export default function AddCropPage() {
   const router = useRouter();
@@ -86,7 +86,6 @@ export default function AddCropPage() {
         plants: normalizedPlants,
         custom_crop_id: customCropId,
         transplant_date: transplantDate || null,
-        selling_price: null,
       });
 
       setSuccessMessage('Coltura creata con successo. Reindirizzamento alla dashboard...');

@@ -1,5 +1,5 @@
 import type { Weather } from '@/lib/weather';
-import type { Crop } from '@/lib/cropDataService';
+import type { Crop } from '@/lib/cropService';
 import { cropKeys, type CropKey } from '@/lib/crops';
 
 export type AgronomicTaskColor = 'red' | 'orange' | 'yellow' | 'blue' | 'green';

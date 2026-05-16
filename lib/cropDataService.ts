@@ -1,37 +1,7 @@
 import { supabaseClient } from './supabaseClient';
-import { crops } from './crops';
 
-export interface CustomCrop {
-  id: string;
-  user_id: string;
-  name: string;
-  spacing_cm: number;
-  min_yield: number;
-  max_yield: number;
-  created_at: string;
-}
-
-export interface Crop {
-  id: string;
-  user_id: string;
-  name: string;
-  plants: number;
-  custom_crop_id?: string | null;
-  transplant_date?: string | null;
-  selling_price?: number | null;
-  created_at: string;
-  updated_at: string;
-  custom_crops?: CustomCrop | null;
-}
-
-function normalizeCropData(crop: Crop & { custom_crops?: CustomCrop[] | null }): Crop {
-  const customCropRaw = crop.custom_crops;
-  const customCrop = Array.isArray(customCropRaw) ? customCropRaw[0] ?? null : customCropRaw ?? null;
-  return {
-    ...crop,
-    custom_crops: customCrop,
-  };
-}
+// Types
+export type ActivityType = 'semina' | 'trapianto' | 'concimazione' | 'irrigazione' | 'raccolta';
 
 export interface Cost {
   id: string;
@@ -48,7 +18,7 @@ export interface Activity {
   id: string;
   crop_id: string;
   user_id: string;
-  activity_type: 'semina' | 'trapianto' | 'concimazione' | 'irrigazione' | 'raccolta';
+  activity_type: ActivityType;
   activity_date: string;
   notes: string | null;
   created_at: string;
@@ -65,30 +35,77 @@ export interface Harvest {
   updated_at: string;
 }
 
-export interface CreateCropData {
-  name: string;
-  plants: number;
-  custom_crop_id?: string | null;
-  transplant_date?: string | null;
-  selling_price?: number | null;
+type CostRow = {
+  id: string;
+  crop_id: string;
+  user_id: string;
+  title: string;
+  amount: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ActivityRow = {
+  id: string;
+  crop_id: string;
+  user_id: string;
+  activity_type: ActivityType;
+  activity_date: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type HarvestRow = {
+  id: string;
+  crop_id: string;
+  user_id: string;
+  quantity_kg: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function normalizeCost(row: CostRow): Cost {
+  return {
+    id: row.id,
+    crop_id: row.crop_id,
+    user_id: row.user_id,
+    title: row.title,
+    amount: Number(row.amount),
+    notes: row.notes,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
 }
 
-export interface CreateCustomCropData {
-  name: string;
-  spacing_cm: number;
-  min_yield: number;
-  max_yield: number;
+function normalizeActivity(row: ActivityRow): Activity {
+  return {
+    id: row.id,
+    crop_id: row.crop_id,
+    user_id: row.user_id,
+    activity_type: row.activity_type,
+    activity_date: row.activity_date,
+    notes: row.notes,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
 }
 
-export interface DashboardStats {
-  totalCrops: number;
-  totalPlants: number;
-  totalEstimatedMin: number;
-  totalEstimatedMax: number;
-  totalRealProduction: number;
-  totalCosts: number;
+function normalizeHarvest(row: HarvestRow): Harvest {
+  return {
+    id: row.id,
+    crop_id: row.crop_id,
+    user_id: row.user_id,
+    quantity_kg: Number(row.quantity_kg),
+    notes: row.notes,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
 }
 
+// Auth helper
 async function getAuthenticatedUser() {
   const {
     data: { session },
@@ -96,287 +113,440 @@ async function getAuthenticatedUser() {
   } = await supabaseClient.auth.getSession();
 
   if (error) {
+    console.error('[AUTH] getSession ERROR:', JSON.stringify(error, null, 2));
     throw error;
   }
 
   const user = session?.user;
 
+  console.log('[AUTH] Current user:', user?.id);
+  console.log('[AUTH] User exists:', !!user);
+
   if (!user) {
+    console.error('[AUTH] User not authenticated - session exists:', !!session);
     throw new Error('User not authenticated');
   }
 
   return user;
 }
 
-function getCropYieldRange(crop: Crop) {
-  if (crop.custom_crops) {
-    return {
-      min: Number(crop.custom_crops.min_yield) || 1,
-      max: Number(crop.custom_crops.max_yield) || 3,
-    };
-  }
+// COSTS API
 
-  const config = Object.values(crops).find((item) => item.name === crop.name);
-  return {
-    min: config?.yieldMin ?? 1,
-    max: config?.yieldMax ?? 3,
-  };
-}
-
-export async function getUserCrops(): Promise<Crop[]> {
+export async function getCostsByCrop(cropId: string): Promise<Cost[]> {
   const user = await getAuthenticatedUser();
-  const { data, error } = await supabaseClient
-    .from('crops')
-    .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('[Supabase] getUserCrops error:', error);
-    throw error;
-  }
+  try {
+    console.log('[COST QUERY] getCostsByCrop - crop_id:', cropId, 'user_id:', user.id);
+    const { data, error } = await supabaseClient
+      .from('costs')
+      .select('*')
+      .eq('crop_id', cropId)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-  const rows = (data || []) as Array<Crop & { custom_crops?: CustomCrop[] | null }>;
-  return rows.map(normalizeCropData);
-}
-
-export async function getCropById(id: string): Promise<Crop | null> {
-  const user = await getAuthenticatedUser();
-  const { data, error } = await supabaseClient
-    .from('crops')
-    .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single();
-
-  if (error) {
-    if (error.details?.toString().includes('No rows found')) {
-      return null;
+    if (error) {
+      console.error('[COST QUERY] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      console.error('[COST QUERY] ERROR MESSAGE:', error?.message);
+      console.error('[COST QUERY] ERROR DETAILS:', error?.details);
+      console.error('[COST QUERY] ERROR HINT:', error?.hint);
+      console.error('[COST QUERY] ERROR CODE:', error?.code);
+      throw error;
     }
-    console.error('[Supabase] getCropById error:', error);
-    throw error;
-  }
 
-  return normalizeCropData(data as Crop & { custom_crops?: CustomCrop[] | null });
+    console.log('[COST QUERY] SUCCESS - returned', data?.length || 0, 'rows');
+    return (data || []).map(normalizeCost);
+  } catch (err) {
+    console.error('[COST QUERY] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
 }
 
-export async function createCrop(cropData: CreateCropData): Promise<Crop> {
+export async function getTotalCostsByCrop(cropId: string): Promise<number> {
+  const costs = await getCostsByCrop(cropId);
+  return costs.reduce((sum, cost) => sum + cost.amount, 0);
+}
+
+export async function getTotalCostsForUser(): Promise<number> {
   const user = await getAuthenticatedUser();
-  const payload = {
-    user_id: user.id,
-    name: cropData.name,
-    plants: cropData.plants,
-    custom_crop_id: cropData.custom_crop_id || null,
-    transplant_date: cropData.transplant_date || null,
-    selling_price: cropData.selling_price || null,
-  };
 
-  const { data, error } = await supabaseClient
-    .from('crops')
-    .insert(payload)
-    .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
-    .single();
+  try {
+    console.log('[COST QUERY] getTotalCostsForUser - user_id:', user.id);
+    const { data, error } = await supabaseClient
+      .from('costs')
+      .select('*')
+      .eq('user_id', user.id);
 
-  if (error) {
-    console.error('[Supabase] createCrop error:', error);
-    throw error;
-  }
-
-  const crop = normalizeCropData(data as Crop & { custom_crops?: CustomCrop[] | null });
-
-  // Automatically create a "trapianto" activity if transplant_date is provided
-  if (crop.transplant_date) {
-    try {
-      console.log('[Supabase] Creating transplant activity for crop:', crop.id, 'date:', crop.transplant_date);
-      await supabaseClient
-        .from('activities')
-        .insert({
-          crop_id: crop.id,
-          user_id: user.id,
-          activity_type: 'trapianto',
-          activity_date: crop.transplant_date,
-          notes: 'Trapianto registrato',
-        });
-      console.log('[Supabase] Transplant activity created successfully');
-    } catch (activityError) {
-      console.error('[Supabase] Failed to create transplant activity:', activityError);
-      // Non lanciamo errore - la coltura è stata creata, ma l'activity no
+    if (error) {
+      console.error('[COST QUERY] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
     }
-  }
 
-  return crop;
-}
-
-export async function deleteCrop(id: string): Promise<void> {
-  const user = await getAuthenticatedUser();
-  const { error } = await supabaseClient
-    .from('crops')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id);
-
-  if (error) {
-    throw error;
+    const total = (data || []).reduce((sum, item) => sum + Number(item.amount), 0);
+    console.log('[COST QUERY] SUCCESS - total:', total);
+    return total;
+  } catch (err) {
+    console.error('[COST QUERY] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
   }
 }
 
-export async function getUserCustomCrops(): Promise<CustomCrop[]> {
+export async function addCost(cropId: string, title: string, notes: string, amount: number): Promise<Cost> {
   const user = await getAuthenticatedUser();
-  const { data, error } = await supabaseClient
-    .from('custom_crops')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
 
-  if (error) {
-    throw error;
-  }
-
-  return (data || []) as CustomCrop[];
-}
-
-export async function createCustomCrop(cropData: CreateCustomCropData): Promise<CustomCrop> {
-  const user = await getAuthenticatedUser();
-  const { data, error } = await supabaseClient
-    .from('custom_crops')
-    .insert({
-      user_id: user.id,
-      name: cropData.name,
-      spacing_cm: cropData.spacing_cm,
-      min_yield: cropData.min_yield,
-      max_yield: cropData.max_yield,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data as CustomCrop;
-}
-
-export async function getCosts(cropId?: string): Promise<Cost[]> {
-  const user = await getAuthenticatedUser();
-  let query = supabaseClient
-    .from('costs')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  if (cropId) {
-    query = query.eq('crop_id', cropId);
-  }
-
-  const { data, error } = await query;
-  if (error) {
-    console.error('[Supabase] getCosts error:', error);
-    throw error;
-  }
-
-  return (data || []) as Cost[];
-}
-
-export async function addCost(cropId: string, title: string, amount: number, notes?: string): Promise<Cost> {
-  const user = await getAuthenticatedUser();
-  
-  console.log('[Supabase] addCost request:', { cropId, user_id: user.id, title, amount, notes });
-  
-  const { data, error } = await supabaseClient
-    .from('costs')
-    .insert({
+  try {
+    const payload: { crop_id: string; user_id: string; title: string; amount: number; notes?: string | null } = {
       crop_id: cropId,
       user_id: user.id,
       title,
       amount,
-      notes: notes || null,
-    })
-    .select()
-    .single();
+      notes: notes ? notes : null,
+    };
+    console.log('[COST INSERT] PAYLOAD:', JSON.stringify(payload, null, 2));
+    console.log('[COST INSERT] crop_id:', cropId);
+    console.log('[COST INSERT] user_id:', user.id);
+    console.log('[COST INSERT] title:', title);
+    console.log('[COST INSERT] amount:', amount);
+    console.log('[COST INSERT] notes:', notes);
 
-  if (error) {
-    console.error('[Supabase] addCost error:', { 
-      error: error.message, 
-      code: error.code, 
-      details: error.details,
-      hint: error.hint,
-      cropId,
-      userId: user.id,
-    });
-    throw error;
+    const { data, error } = await supabaseClient
+      .from('costs')
+      .insert([payload])
+      .select('*');
+
+    if (error) {
+      console.error('[COST INSERT] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      console.error('[COST INSERT] ERROR MESSAGE:', error?.message);
+      console.error('[COST INSERT] ERROR DETAILS:', error?.details);
+      console.error('[COST INSERT] ERROR HINT:', error?.hint);
+      console.error('[COST INSERT] ERROR CODE:', error?.code);
+      console.error('[COST INSERT] ERROR OBJECT:', error);
+      throw error;
+    }
+
+    console.log('[COST INSERT] SUCCESS - data:', JSON.stringify(data, null, 2));
+    if (data && data.length > 0) {
+      return normalizeCost(data[0] as CostRow);
+    }
+    throw new Error('No data returned from insert');
+  } catch (err) {
+    console.error('[COST INSERT] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
   }
-
-  console.log('[Supabase] addCost success:', data);
-  return data as Cost;
 }
 
-export async function getActivities(cropId?: string): Promise<Activity[]> {
+export async function updateCost(costId: string, notes: string, amount: number): Promise<Cost> {
   const user = await getAuthenticatedUser();
-  let query = supabaseClient
-    .from('activities')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('activity_date', { ascending: false });
 
-  if (cropId) {
-    query = query.eq('crop_id', cropId);
+  try {
+    console.log('[COST UPDATE] costId:', costId, 'user_id:', user.id, 'notes:', notes, 'amount:', amount);
+    const { data, error } = await supabaseClient
+      .from('costs')
+      .update({ notes, amount })
+      .eq('id', costId)
+      .eq('user_id', user.id)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('[COST UPDATE] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('[COST UPDATE] SUCCESS:', JSON.stringify(data, null, 2));
+    return normalizeCost(data as CostRow);
+  } catch (err) {
+    console.error('[COST UPDATE] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
   }
+}
 
-  const { data, error } = await query;
-  if (error) {
-    console.error('[Supabase] getActivities error:', error);
-    throw error;
+export async function deleteCost(costId: string): Promise<void> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[COST DELETE] costId:', costId, 'user_id:', user.id);
+    const { error } = await supabaseClient
+      .from('costs')
+      .delete()
+      .eq('id', costId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('[COST DELETE] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('[COST DELETE] SUCCESS');
+  } catch (err) {
+    console.error('[COST DELETE] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
   }
+}
 
-  return (data || []) as Activity[];
+// ACTIVITIES API
+
+export async function getActivitiesByCrop(cropId: string): Promise<Activity[]> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[ACTIVITY QUERY] getActivitiesByCrop - crop_id:', cropId, 'user_id:', user.id);
+    const { data, error } = await supabaseClient
+      .from('activities')
+      .select('*')
+      .eq('crop_id', cropId)
+      .eq('user_id', user.id)
+      .order('activity_date', { ascending: false });
+
+    if (error) {
+      console.error('[ACTIVITY QUERY] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      console.error('[ACTIVITY QUERY] ERROR MESSAGE:', error?.message);
+      console.error('[ACTIVITY QUERY] ERROR DETAILS:', error?.details);
+      console.error('[ACTIVITY QUERY] ERROR HINT:', error?.hint);
+      console.error('[ACTIVITY QUERY] ERROR CODE:', error?.code);
+      throw error;
+    }
+
+    console.log('[ACTIVITY QUERY] SUCCESS - returned', data?.length || 0, 'rows');
+    return (data || []).map(normalizeActivity);
+  } catch (err) {
+    console.error('[ACTIVITY QUERY] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
 }
 
 export async function addActivity(
   cropId: string,
-  activityType: Activity['activity_type'],
-  date: string,
+  activity_type: ActivityType,
+  activity_date: string,
   notes?: string
 ): Promise<Activity> {
   const user = await getAuthenticatedUser();
-  const { data, error } = await supabaseClient
-    .from('activities')
-    .insert({
+
+  try {
+    const payload = {
       crop_id: cropId,
       user_id: user.id,
-      activity_type: activityType,
-      activity_date: date,
-      notes: notes || null,
-    })
-    .select()
-    .single();
+      activity_type,
+      activity_date,
+      notes: notes ? notes : null,
+    };
+    console.log('[ACTIVITY INSERT] PAYLOAD:', JSON.stringify(payload, null, 2));
+    console.log('[ACTIVITY INSERT] crop_id:', cropId);
+    console.log('[ACTIVITY INSERT] user_id:', user.id);
+    console.log('[ACTIVITY INSERT] activity_type:', activity_type);
+    console.log('[ACTIVITY INSERT] activity_date:', activity_date);
+    console.log('[ACTIVITY INSERT] notes:', notes);
 
-  if (error) {
-    console.error('[Supabase] addActivity error:', error);
-    throw error;
+    const { data, error } = await supabaseClient
+      .from('activities')
+      .insert([payload])
+      .select('*');
+
+    if (error) {
+      console.error('[ACTIVITY INSERT] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      console.error('[ACTIVITY INSERT] ERROR MESSAGE:', error?.message);
+      console.error('[ACTIVITY INSERT] ERROR DETAILS:', error?.details);
+      console.error('[ACTIVITY INSERT] ERROR HINT:', error?.hint);
+      console.error('[ACTIVITY INSERT] ERROR CODE:', error?.code);
+      console.error('[ACTIVITY INSERT] ERROR OBJECT:', error);
+      throw error;
+    }
+
+    console.log('[ACTIVITY INSERT] SUCCESS - data:', JSON.stringify(data, null, 2));
+    if (data && data.length > 0) {
+      return normalizeActivity(data[0] as ActivityRow);
+    }
+    throw new Error('No data returned from insert');
+  } catch (err) {
+    console.error('[ACTIVITY INSERT] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
   }
-
-  return data as Activity;
 }
 
-export async function getHarvests(cropId?: string): Promise<Harvest[]> {
+export async function updateActivity(
+  activityId: string,
+  activity_type: ActivityType,
+  activity_date: string,
+  notes?: string | null
+): Promise<Activity> {
   const user = await getAuthenticatedUser();
-  let query = supabaseClient
-    .from('harvests')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
 
-  if (cropId) {
-    query = query.eq('crop_id', cropId);
+  try {
+    console.log('[ACTIVITY UPDATE] activityId:', activityId, 'user_id:', user.id, 'activity_type:', activity_type, 'activity_date:', activity_date);
+    const { data, error } = await supabaseClient
+      .from('activities')
+      .update({ activity_type, activity_date, notes: notes ?? null })
+      .eq('id', activityId)
+      .eq('user_id', user.id)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('[ACTIVITY UPDATE] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('[ACTIVITY UPDATE] SUCCESS:', JSON.stringify(data, null, 2));
+    return normalizeActivity(data as ActivityRow);
+  } catch (err) {
+    console.error('[ACTIVITY UPDATE] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
   }
+}
 
-  const { data, error } = await query;
-  if (error) {
-    console.error('[Supabase] getHarvests error:', error);
-    throw error;
+export async function deleteActivity(activityId: string): Promise<void> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[ACTIVITY DELETE] activityId:', activityId, 'user_id:', user.id);
+    const { error } = await supabaseClient
+      .from('activities')
+      .delete()
+      .eq('id', activityId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('[ACTIVITY DELETE] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('[ACTIVITY DELETE] SUCCESS');
+  } catch (err) {
+    console.error('[ACTIVITY DELETE] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
   }
+}
 
-  return (data || []) as Harvest[];
+// HARVESTS API
+
+export async function getHarvestsByCrop(cropId: string): Promise<Harvest[]> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[HARVEST QUERY] getHarvestsByCrop - crop_id:', cropId, 'user_id:', user.id);
+    const { data, error } = await supabaseClient
+      .from('harvests')
+      .select('*')
+      .eq('crop_id', cropId)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[HARVEST QUERY] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      console.error('[HARVEST QUERY] ERROR MESSAGE:', error?.message);
+      console.error('[HARVEST QUERY] ERROR DETAILS:', error?.details);
+      console.error('[HARVEST QUERY] ERROR HINT:', error?.hint);
+      console.error('[HARVEST QUERY] ERROR CODE:', error?.code);
+      throw error;
+    }
+
+    console.log('[HARVEST QUERY] SUCCESS - returned', data?.length || 0, 'rows');
+    return (data || []).map(normalizeHarvest);
+  } catch (err) {
+    console.error('[HARVEST QUERY] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
+}
+
+export async function getActivitiesForUser(): Promise<Activity[]> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[ACTIVITY QUERY] getActivitiesForUser - user_id:', user.id);
+    const { data, error } = await supabaseClient
+      .from('activities')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('activity_date', { ascending: false });
+
+    if (error) {
+      console.error('[ACTIVITY QUERY] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('[ACTIVITY QUERY] SUCCESS - returned', data?.length || 0, 'rows');
+    return (data || []).map(normalizeActivity);
+  } catch (err) {
+    console.error('[ACTIVITY QUERY] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
+}
+
+export async function getHarvestsForUser(): Promise<Harvest[]> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[HARVEST QUERY] getHarvestsForUser - user_id:', user.id);
+    const { data, error } = await supabaseClient
+      .from('harvests')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[HARVEST QUERY] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('[HARVEST QUERY] SUCCESS - returned', data?.length || 0, 'rows');
+    return (data || []).map(normalizeHarvest);
+  } catch (err) {
+    console.error('[HARVEST QUERY] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
+}
+
+export async function getTotalHarvestsForUser(): Promise<number> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[HARVEST QUERY] getTotalHarvestsForUser - user_id:', user.id);
+    const { data, error } = await supabaseClient
+      .from('harvests')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('[HARVEST QUERY] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    const total = (data || []).reduce((sum, item) => sum + Number(item.quantity_kg), 0);
+    console.log('[HARVEST QUERY] SUCCESS - total kg:', total);
+    return total;
+  } catch (err) {
+    console.error('[HARVEST QUERY] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
+}
+
+export async function getCostsForUser(): Promise<Cost[]> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[COST QUERY] getCostsForUser - user_id:', user.id);
+    const { data, error } = await supabaseClient
+      .from('costs')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[COST QUERY] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('[COST QUERY] SUCCESS - returned', data?.length || 0, 'rows');
+    return (data || []).map(normalizeCost);
+  } catch (err) {
+    console.error('[COST QUERY] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
+}
+
+export async function getTotalHarvestsByCrop(cropId: string): Promise<number> {
+  const harvests = await getHarvestsByCrop(cropId);
+  return harvests.reduce((sum, harvest) => sum + harvest.quantity_kg, 0);
 }
 
 export async function addHarvest(
@@ -385,210 +555,95 @@ export async function addHarvest(
   notes?: string
 ): Promise<Harvest> {
   const user = await getAuthenticatedUser();
-  const { data, error } = await supabaseClient
-    .from('harvests')
-    .insert({
+
+  try {
+    const payload = {
       crop_id: cropId,
       user_id: user.id,
       quantity_kg,
-      notes: notes || null,
-    })
-    .select()
-    .single();
+      notes: notes ? notes : null,
+    };
+    console.log('[HARVEST INSERT] PAYLOAD:', JSON.stringify(payload, null, 2));
+    console.log('[HARVEST INSERT] crop_id:', cropId);
+    console.log('[HARVEST INSERT] user_id:', user.id);
+    console.log('[HARVEST INSERT] quantity_kg:', quantity_kg);
+    console.log('[HARVEST INSERT] notes:', notes);
 
-  if (error) {
-    console.error('[Supabase] addHarvest error:', error);
-    throw error;
-  }
+    const { data, error } = await supabaseClient
+      .from('harvests')
+      .insert([payload])
+      .select('*');
 
-  return data as Harvest;
-}
+    if (error) {
+      console.error('[HARVEST INSERT] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      console.error('[HARVEST INSERT] ERROR MESSAGE:', error?.message);
+      console.error('[HARVEST INSERT] ERROR DETAILS:', error?.details);
+      console.error('[HARVEST INSERT] ERROR HINT:', error?.hint);
+      console.error('[HARVEST INSERT] ERROR CODE:', error?.code);
+      console.error('[HARVEST INSERT] ERROR OBJECT:', error);
+      throw error;
+    }
 
-export async function updateCrop(id: string, updates: Partial<CreateCropData>): Promise<Crop> {
-  const { data, error } = await supabaseClient
-    .from('crops')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at, custom_crops(id, spacing_cm, min_yield, max_yield)')
-    .single();
-
-  if (error) {
-    console.error('[Supabase] updateCrop error:', error);
-    throw error;
-  }
-
-  return normalizeCropData(data as Crop & { custom_crops?: CustomCrop[] | null });
-}
-
-export async function updateCost(id: string, updates: Partial<Pick<Cost, 'title' | 'amount' | 'notes'>>): Promise<Cost> {
-  const { data, error } = await supabaseClient
-    .from('costs')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('[Supabase] updateCost error:', error);
-    throw error;
-  }
-
-  return data as Cost;
-}
-
-export async function deleteCost(id: string): Promise<void> {
-  const { error } = await supabaseClient
-    .from('costs')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('[Supabase] deleteCost error:', error);
-    throw error;
-  }
-}
-
-export async function updateActivity(
-  id: string,
-  updates: Partial<Pick<Activity, 'activity_type' | 'activity_date' | 'notes'>>
-): Promise<Activity> {
-  const { data, error } = await supabaseClient
-    .from('activities')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('[Supabase] updateActivity error:', error);
-    throw error;
-  }
-
-  return data as Activity;
-}
-
-export async function deleteActivity(id: string): Promise<void> {
-  const { error } = await supabaseClient
-    .from('activities')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('[Supabase] deleteActivity error:', error);
-    throw error;
+    console.log('[HARVEST INSERT] SUCCESS - data:', JSON.stringify(data, null, 2));
+    if (data && data.length > 0) {
+      return normalizeHarvest(data[0] as HarvestRow);
+    }
+    throw new Error('No data returned from insert');
+  } catch (err) {
+    console.error('[HARVEST INSERT] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
   }
 }
 
 export async function updateHarvest(
-  id: string,
-  updates: Partial<Pick<Harvest, 'quantity_kg' | 'notes'>>
+  harvestId: string,
+  quantity_kg: number,
+  notes?: string | null
 ): Promise<Harvest> {
-  const { data, error } = await supabaseClient
-    .from('harvests')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('[Supabase] updateHarvest error:', error);
-    throw error;
-  }
-
-  return data as Harvest;
-}
-
-export async function deleteHarvest(id: string): Promise<void> {
-  const { error } = await supabaseClient
-    .from('harvests')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('[Supabase] deleteHarvest error:', error);
-    throw error;
-  }
-}
-
-export async function getUserTotalCosts(): Promise<number> {
-  const costs = await getCosts();
-  return costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
-}
-
-export async function getUserTotalHarvests(): Promise<number> {
-  const harvests = await getHarvests();
-  return harvests.reduce((sum, harvest) => sum + Number(harvest.quantity_kg), 0);
-}
-
-export async function getDashboardStats(): Promise<DashboardStats> {
-  const crops = await getUserCrops();
-  const totalCosts = await getUserTotalCosts();
-  const totalRealProduction = await getUserTotalHarvests();
-
-  const totalEstimatedMin = crops.reduce((sum, crop) => {
-    const range = getCropYieldRange(crop);
-    return sum + crop.plants * range.min;
-  }, 0);
-
-  const totalEstimatedMax = crops.reduce((sum, crop) => {
-    const range = getCropYieldRange(crop);
-    return sum + crop.plants * range.max;
-  }, 0);
-
-  return {
-    totalCrops: crops.length,
-    totalPlants: crops.reduce((sum, crop) => sum + crop.plants, 0),
-    totalEstimatedMin,
-    totalEstimatedMax,
-    totalRealProduction,
-    totalCosts,
-  };
-}
-
-export async function getCostsByCrop(cropId: string): Promise<Cost[]> {
-  return getCosts(cropId);
-}
-
-export async function getActivitiesByCrop(cropId: string): Promise<Activity[]> {
-  return getActivities(cropId);
-}
-
-export async function getHarvestsByCrop(cropId: string): Promise<Harvest[]> {
-  return getHarvests(cropId);
-}
-
-export async function getHarvestsTotalByCrop(): Promise<Record<string, number>> {
   const user = await getAuthenticatedUser();
-  const { data, error } = await supabaseClient
-    .from('harvests')
-    .select('crop_id, quantity_kg')
-    .eq('user_id', user.id);
 
-  if (error) {
-    console.error('[Supabase] getHarvestsTotalByCrop error:', error);
-    throw error;
-  }
+  try {
+    console.log('[HARVEST UPDATE] harvestId:', harvestId, 'user_id:', user.id, 'quantity_kg:', quantity_kg);
+    const { data, error } = await supabaseClient
+      .from('harvests')
+      .update({ quantity_kg, notes: notes ?? null })
+      .eq('id', harvestId)
+      .eq('user_id', user.id)
+      .select('*')
+      .single();
 
-  const totals: Record<string, number> = {};
-  (data || []).forEach((harvest) => {
-    const key = harvest.crop_id;
-    if (!totals[key]) {
-      totals[key] = 0;
+    if (error) {
+      console.error('[HARVEST UPDATE] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
     }
-    totals[key] += Number(harvest.quantity_kg);
-  });
 
-  return totals;
+    console.log('[HARVEST UPDATE] SUCCESS:', JSON.stringify(data, null, 2));
+    return normalizeHarvest(data as HarvestRow);
+  } catch (err) {
+    console.error('[HARVEST UPDATE] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
+}
+
+export async function deleteHarvest(harvestId: string): Promise<void> {
+  const user = await getAuthenticatedUser();
+
+  try {
+    console.log('[HARVEST DELETE] harvestId:', harvestId, 'user_id:', user.id);
+    const { error } = await supabaseClient
+      .from('harvests')
+      .delete()
+      .eq('id', harvestId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('[HARVEST DELETE] SUPABASE ERROR FULL:', JSON.stringify(error, null, 2));
+      throw error;
+    }
+
+    console.log('[HARVEST DELETE] SUCCESS');
+  } catch (err) {
+    console.error('[HARVEST DELETE] EXCEPTION:', JSON.stringify(err, null, 2));
+    throw err;
+  }
 }

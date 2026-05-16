@@ -1,5 +1,5 @@
 import { supabaseClient } from './supabaseClient';
-import { getUserTotalCosts as getUserTotalCostsFromService, getUserTotalHarvests as getUserTotalHarvestsFromService } from './cropDataService';
+import { getTotalCostsForUser } from './cropDataService';
 
 export interface Crop {
   id: string;
@@ -59,21 +59,32 @@ async function getAuthenticatedUser() {
 
 // Get all crops for the current user
 export async function getUserCrops(): Promise<Crop[]> {
+  console.log('[Dashboard] 📊 Fetching crops start');
   const user = await getAuthenticatedUser();
 
   try {
     const { data, error } = await supabaseClient
       .from('crops')
-      .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at')
+      .select('id, user_id, name, plants, custom_crop_id, transplant_date, created_at, updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
+    console.log('[CropService] QUERY TABLE: crops');
+    console.log('[CropService] QUERY NAME: getUserCrops');
+    console.log('[CropService] QUERY SELECT: id, user_id, name, plants, custom_crop_id, transplant_date, created_at, updated_at');
+    console.log('[CropService] QUERY ORDER: created_at DESC');
+    console.log('[CropService] QUERY RESPONSE:', data);
+    console.log('[CropService] QUERY ERROR:', error);
+
     if (error) {
+      console.error('[Dashboard] ❌ Error fetching crops:', error);
       throw error;
     }
 
+    console.log('[Dashboard] ✅ Crops loaded:', data?.length || 0);
     return data || [];
   } catch (err) {
+    console.error('[Dashboard] 💥 Crops fetch exception:', err);
     throw err;
   }
 }
@@ -84,10 +95,16 @@ export async function getCropById(id: string): Promise<Crop | null> {
   try {
     const { data, error } = await supabaseClient
       .from('crops')
-      .select('id, user_id, name, plants, custom_crop_id, transplant_date, selling_price, created_at, updated_at')
+      .select('id, user_id, name, plants, custom_crop_id, transplant_date, created_at, updated_at')
       .eq('id', id)
       .eq('user_id', user.id)
       .single();
+
+    console.log('[CropService] QUERY TABLE: crops');
+    console.log('[CropService] QUERY NAME: getCropById');
+    console.log('[CropService] QUERY SELECT: id, user_id, name, plants, custom_crop_id, transplant_date, created_at, updated_at');
+    console.log('[CropService] QUERY RESPONSE:', data);
+    console.log('[CropService] QUERY ERROR:', error);
 
     if (error) {
       if (typeof error.details === 'string' && error.details.includes('No rows found')) {
@@ -98,6 +115,7 @@ export async function getCropById(id: string): Promise<Crop | null> {
 
     return data;
   } catch (err) {
+    console.error('[CropService] Error fetching crop by id:', err);
     throw err;
   }
 }
@@ -113,8 +131,7 @@ export async function createCrop(cropData: CreateCropData): Promise<Crop> {
       name: cropData.name,
       plants: cropData.plants,
       custom_crop_id: cropData.custom_crop_id,
-      transplant_date: cropData.transplant_date || null,
-      selling_price: cropData.selling_price || null,
+      transplant_date: cropData.transplant_date ?? null,
     })
     .select()
     .single();
@@ -167,6 +184,13 @@ export async function getUserCustomCrops(): Promise<CustomCrop[]> {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
+  console.log('[CropService] QUERY TABLE: custom_crops');
+  console.log('[CropService] QUERY NAME: getUserCustomCrops');
+  console.log('[CropService] QUERY SELECT: *');
+  console.log('[CropService] QUERY ORDER: created_at DESC');
+  console.log('[CropService] QUERY RESPONSE:', data);
+  console.log('[CropService] QUERY ERROR:', error);
+
   if (error) {
     throw error;
   }
@@ -199,10 +223,5 @@ export async function createCustomCrop(cropData: CreateCustomCropData): Promise<
 
 // Get total costs for the current user across all crops
 export async function getUserTotalCosts(): Promise<number> {
-  return await getUserTotalCostsFromService();
-}
-
-// Get total harvest weight for the current user across all crops
-export async function getUserTotalHarvests(): Promise<number> {
-  return await getUserTotalHarvestsFromService();
+  return await getTotalCostsForUser();
 }

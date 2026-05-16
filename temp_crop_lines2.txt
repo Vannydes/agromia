@@ -1,0 +1,179 @@
+﻿0001:           setCosts([]);
+0002:           setHarvests([]);
+0003:           setActivities([]);
+0004:           setFetchError('Coltura non trovata');
+0005:           return;
+0007: 
+0008:         const detail = createCropDetail(data);
+0009:         setCrop(detail);
+0010:         setPricePerKg(detail.pricePerKg.toString());
+0011:         setFetchError(null);
+0012:         setRelatedDataError(null);
+0013: 
+0014:         const results = await Promise.allSettled([
+0015:           getCostsByCrop(cropIdFromParams),
+0016:           getHarvestsByCrop(cropIdFromParams),
+0017:           getActivitiesByCrop(cropIdFromParams),
+0018:         ]);
+0019: 
+0020:         const [costsResult, harvestsResult, activitiesResult] = results;
+0021: 
+0022:         setCosts(costsResult.status === 'fulfilled' ? costsResult.value : []);
+0023:         setHarvests(harvestsResult.status === 'fulfilled' ? harvestsResult.value : []);
+0024:         setActivities(activitiesResult.status === 'fulfilled' ? activitiesResult.value : []);
+0025: 
+0028:             costs: costsResult,
+0029:             harvests: harvestsResult,
+0030:             activities: activitiesResult,
+0032:           setRelatedDataError('Alcuni dati della coltura non sono disponibili al momento. Riprova piÃ¹ tardi.');
+0035:         console.error('[Crop] Error loading crop:', err);
+0037:           setCrop(null);
+0038:           setCosts([]);
+0039:           setHarvests([]);
+0040:           setActivities([]);
+0041:           setFetchError('Coltura non trovata');
+0043:           setCrop(null);
+0044:           setCosts([]);
+0045:           setHarvests([]);
+0046:           setActivities([]);
+0047:           setFetchError(err instanceof Error ? err.message : 'Errore durante il caricamento della coltura');
+0050:         setLoading(false);
+0053: 
+0054:     loadCrop();
+0056: 
+0058:     if (!crop) return;
+0059: 
+0061:       const updated = await getCropById(crop.id);
+0063:         const detail = createCropDetail(updated);
+0064:         setCrop(detail);
+0065:         setPricePerKg(detail.pricePerKg.toString());
+0066:         setEditCropName(detail.name);
+0067:         setEditCropPlants(detail.plants.toString());
+0068:         setEditCropTransplantDate(detail.transplant_date ?? '');
+0069:         setEditCropSellingPrice((detail.selling_price ?? 2.5).toString());
+0071: 
+0072:       const [updatedCosts, updatedHarvests, updatedActivities] = await Promise.all([
+0073:         getCostsByCrop(crop.id),
+0074:         getHarvestsByCrop(crop.id),
+0075:         getActivitiesByCrop(crop.id),
+0076:       ]);
+0077: 
+0078:       setCosts(updatedCosts);
+0079:       setHarvests(updatedHarvests);
+0080:       setActivities(updatedActivities);
+0082:       console.error('[Crop] refresh error:', err);
+0085: 
+0088:       setPricePerKg((crop.pricePerKg ?? 2.5).toString());
+0089:       setEditCropName(crop.name);
+0090:       setEditCropPlants(crop.plants.toString());
+0091:       setEditCropTransplantDate(crop.transplant_date ?? '');
+0092:       setEditCropSellingPrice((crop.selling_price ?? 2.5).toString());
+0095: 
+0096:   // Load weather data
+0098:     // Only run on client-side
+0100:       setWeatherLoading(false);
+0101:       return;
+0103: 
+0104: 
+0107:         const weatherData = await getCurrentWeather();
+0109:           setWeather(null);
+0111:         setWeather(weatherData);
+0113:         console.error('Weather: Error loading weather in crop page:', error);
+0114:         // Weather will remain null, component will handle gracefully
+0116:         setWeatherLoading(false);
+0119: 
+0120:     loadWeather();
+0122: 
+0123:   const totalKg = useMemo(
+0124:     () =>
+0125:       harvests.reduce((sum, harvest) => sum + harvest.quantity_kg, 0),
+0126:     [harvests]
+0127:   );
+0128: 
+0129:   const totalCosts = useMemo(
+0130:     () =>
+0131:       costs.reduce((sum, cost) => sum + cost.amount, 0),
+0132:     [costs]
+0133:   );
+0134: 
+0135:   const estimatedMin = crop ? crop.plants * crop.yieldMin : 0;
+0136:   const estimatedMax = crop ? crop.plants * crop.yieldMax : 0;
+0137: 
+0138:   const revenue = useMemo(() => Number(totalKg) * Number(crop?.pricePerKg ?? 2.5), [totalKg, crop]);
+0139:   const profit = useMemo(() => Number(revenue) - Number(totalCosts), [revenue, totalCosts]);
+0140: 
+0142:     if (!crop || !weather) return [];
+0143:     return generateCropAgronomicTasks(crop, weather);
+0145: 
+0147:     red: 'border-red-200 bg-red-50',
+0148:     orange: 'border-orange-200 bg-orange-50',
+0149:     yellow: 'border-yellow-200 bg-yellow-50',
+0150:     blue: 'border-sky-200 bg-sky-50',
+0151:     green: 'border-emerald-200 bg-emerald-50',
+0153: 
+0155:     const events: TimelineEvent[] = [];
+0156: 
+0157:     // Add activities from database
+0160:         type: activity.type,
+0161:         note: activity.note || activity.type,
+0162:         date: activity.date,
+0163:         id: activity.id,
+0166: 
+0167:     // Add harvests as events
+0170:         type: 'raccolta',
+0172:         date: harvest.created_at,
+0173:         id: harvest.id,
+0176: 
+0177:     return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+0179: 
+0181:     event.preventDefault();
+0182:     setError('');
+0183: 
+0185:       return;
+0187: 
+0188:     const kg = Number(kgValue);
+0190:       setError('Inserisci un valore kg valido.');
+0191:       return;
+0193: 
+0194:     setIsSubmitting(true);
+0195: 
+0197:       const date = new Date().toISOString().slice(0, 10);
+0199:       const updatedHarvests = await getHarvestsByCrop(crop.id);
+0200:       setHarvests(updatedHarvests);
+0201:       
+0202:       setKgValue('');
+0204:       console.error('[Crop] Error adding harvest:', err);
+0205:       setError(err instanceof Error ? err.message : 'Errore durante il salvataggio del raccolto');
+0207:       setIsSubmitting(false);
+0210: 
+0212:     event.preventDefault();
+0213:     setError('');
+0214: 
+0216:       return;
+0218: 
+0219:     const plants = Number(editCropPlants);
+0220:     const sellingPrice = Number(editCropSellingPrice);
+0222:       setError('Inserisci il nome della coltura.');
+0223:       return;
+0225: 
+0227:       setError('Inserisci un numero piante valido.');
+0228:       return;
+0230: 
+0232:       setError('Inserisci un prezzo di vendita valido.');
+0233:       return;
+0235: 
+0236:     setIsSubmitting(true);
+0239:         name: editCropName.trim(),
+0240:         plants,
+0241:         transplant_date: editCropTransplantDate || null,
+0242:         selling_price: sellingPrice,
+0244:       await refreshCropAndLists();
+0245:       setIsEditingCrop(false);
+0247:       console.error('[Crop] Error updating crop:', err);
+0248:       setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento della coltura');
+0250:       setIsSubmitting(false);
+0253: 
+0255:     event.preventDefault();
+0256:     setError('');
+0257: 
+0259:       return;

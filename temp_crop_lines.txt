@@ -1,0 +1,90 @@
+﻿0001: 'use client';
+0002: 
+0005: import Link from 'next/link';
+0014:   addCost,
+0015:   addHarvest,
+0016:   addActivity,
+0017:   getCostsByCrop,
+0018:   getHarvestsByCrop,
+0019:   getActivitiesByCrop,
+0020:   updateCost,
+0021:   deleteCost,
+0022:   updateActivity,
+0023:   deleteActivity,
+0024:   updateHarvest,
+0025:   deleteHarvest,
+0026:   type Cost,
+0027:   type Harvest,
+0028:   type Activity,
+0031: 
+0033:   type: Activity['type'] | 'raccolta';
+0034:   note: string;
+0035:   date: string;
+0036:   id?: string;
+0038: 
+0040:   spacing: number;
+0041:   yieldMin: number;
+0042:   yieldMax: number;
+0043:   pricePerKg: number;
+0045: 
+0047:   return Object.values(crops).find((config) => config.name === name);
+0049: 
+0051:   const config = getCropConfigByName(crop.name);
+0053:     ...crop,
+0054:     spacing: config?.spacing ?? 50,
+0055:     yieldMin: config?.yieldMin ?? 3,
+0056:     yieldMax: config?.yieldMax ?? 6,
+0057:     pricePerKg: Number(crop.selling_price ?? 2.5),
+0060: 
+0062:   const params = useParams();
+0063:   const router = useRouter();
+0064:   const rawId = params.id;
+0065:   const cropIdFromParams = Array.isArray(rawId) ? rawId[0] ?? '' : rawId ?? '';
+0066: 
+0067:   const [crop, setCrop] = useState<CropDetail | null>(null);
+0068:   const [costs, setCosts] = useState<Cost[]>([]);
+0069:   const [harvests, setHarvests] = useState<Harvest[]>([]);
+0070:   const [activities, setActivities] = useState<Activity[]>([]);
+0071:   
+0072:   const [kgValue, setKgValue] = useState('');
+0073:   const [costAmount, setCostAmount] = useState('');
+0074:   const [costNote, setCostNote] = useState('');
+0075:   const [error, setError] = useState('');
+0076:   const [pricePerKg, setPricePerKg] = useState('');
+0077:   const [isEditingCrop, setIsEditingCrop] = useState(false);
+0078:   const [editCropName, setEditCropName] = useState('');
+0079:   const [editCropPlants, setEditCropPlants] = useState('');
+0080:   const [editCropTransplantDate, setEditCropTransplantDate] = useState('');
+0081:   const [editCropSellingPrice, setEditCropSellingPrice] = useState('');
+0082:   const [editingCostId, setEditingCostId] = useState<string | null>(null);
+0083:   const [editCostTitle, setEditCostTitle] = useState('');
+0084:   const [editCostAmount, setEditCostAmount] = useState('');
+0085:   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+0086:   const [editActivityType, setEditActivityType] = useState<Activity['type']>('trapianto');
+0087:   const [editActivityDate, setEditActivityDate] = useState('');
+0088:   const [editingHarvestId, setEditingHarvestId] = useState<string | null>(null);
+0089:   const [editHarvestKg, setEditHarvestKg] = useState('');
+0090:   const [editHarvestNotes, setEditHarvestNotes] = useState('');
+0091:   const [eventType, setEventType] = useState<Activity['type']>('trapianto');
+0092:   const [activityDate, setActivityDate] = useState(
+0093:     new Date().toISOString().split('T')[0]
+0094:   );
+0095:   const [loading, setLoading] = useState(true);
+0096:   const [fetchError, setFetchError] = useState<string | null>(null);
+0097:   const [relatedDataError, setRelatedDataError] = useState<string | null>(null);
+0098:   const [isSubmitting, setIsSubmitting] = useState(false);
+0099:   const [weather, setWeather] = useState<Weather | null>(null);
+0100:   const [weatherLoading, setWeatherLoading] = useState(true);
+0101: 
+0103: 
+0106:       if (authLoading) return;
+0108:         setCrop(null);
+0109:         setLoading(false);
+0110:         return;
+0112: 
+0113:       setLoading(true);
+0114:       setFetchError(null);
+0115: 
+0117:         const data = await getCropById(cropIdFromParams);
+0118: 
+0120:           setCrop(null);

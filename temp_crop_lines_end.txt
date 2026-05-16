@@ -1,0 +1,130 @@
+﻿150:             activities: activitiesResult,
+151:           });
+152:           setRelatedDataError('Alcuni dati della coltura non sono disponibili al momento. Riprova piÃ¹ tardi.');
+153:         }
+154:       } catch (err) {
+155:         console.error('[Crop] Error loading crop:', err);
+156:         if (err instanceof Error && err.message.includes('No rows found')) {
+157:           setCrop(null);
+158:           setCosts([]);
+159:           setHarvests([]);
+160:           setActivities([]);
+161:           setFetchError('Coltura non trovata');
+162:         } else {
+163:           setCrop(null);
+164:           setCosts([]);
+165:           setHarvests([]);
+166:           setActivities([]);
+167:           setFetchError(err instanceof Error ? err.message : 'Errore durante il caricamento della coltura');
+168:         }
+169:       } finally {
+170:         setLoading(false);
+171:       }
+172:     };
+173: 
+174:     loadCrop();
+175:   }, [authLoading, user, cropIdFromParams]);
+176: 
+177:   const refreshCropAndLists = async () => {
+178:     if (!crop) return;
+179: 
+180:     try {
+181:       const updated = await getCropById(crop.id);
+182:       if (updated) {
+183:         const detail = createCropDetail(updated);
+184:         setCrop(detail);
+185:         setPricePerKg(detail.pricePerKg.toString());
+186:         setEditCropName(detail.name);
+187:         setEditCropPlants(detail.plants.toString());
+188:         setEditCropTransplantDate(detail.transplant_date ?? '');
+189:         setEditCropSellingPrice((detail.selling_price ?? 2.5).toString());
+190:       }
+191: 
+192:       const [updatedCosts, updatedHarvests, updatedActivities] = await Promise.all([
+193:         getCostsByCrop(crop.id),
+194:         getHarvestsByCrop(crop.id),
+195:         getActivitiesByCrop(crop.id),
+196:       ]);
+197: 
+198:       setCosts(updatedCosts);
+199:       setHarvests(updatedHarvests);
+200:       setActivities(updatedActivities);
+201:     } catch (err) {
+202:       console.error('[Crop] refresh error:', err);
+203:     }
+204:   };
+205: 
+206:   useEffect(() => {
+207:     if (crop) {
+208:       setPricePerKg((crop.pricePerKg ?? 2.5).toString());
+209:       setEditCropName(crop.name);
+210:       setEditCropPlants(crop.plants.toString());
+211:       setEditCropTransplantDate(crop.transplant_date ?? '');
+212:       setEditCropSellingPrice((crop.selling_price ?? 2.5).toString());
+213:     }
+214:   }, [crop]);
+215: 
+216:   // Load weather data
+217:   useEffect(() => {
+218:     // Only run on client-side
+219:     if (typeof window === 'undefined') {
+220:       setWeatherLoading(false);
+221:       return;
+222:     }
+223: 
+224: 
+225:     const loadWeather = async () => {
+226:       try {
+227:         const weatherData = await getCurrentWeather();
+228:         if (!weatherData) {
+229:           setWeather(null);
+230:         }
+231:         setWeather(weatherData);
+232:       } catch (error) {
+233:         console.error('Weather: Error loading weather in crop page:', error);
+234:         // Weather will remain null, component will handle gracefully
+235:       } finally {
+236:         setWeatherLoading(false);
+237:       }
+238:     };
+239: 
+240:     loadWeather();
+241:   }, []);
+242: 
+243:   const totalKg = useMemo(
+244:     () =>
+245:       harvests.reduce((sum, harvest) => sum + harvest.quantity_kg, 0),
+246:     [harvests]
+247:   );
+248: 
+249:   const totalCosts = useMemo(
+250:     () =>
+251:       costs.reduce((sum, cost) => sum + cost.amount, 0),
+252:     [costs]
+253:   );
+254: 
+255:   const estimatedMin = crop ? crop.plants * crop.yieldMin : 0;
+256:   const estimatedMax = crop ? crop.plants * crop.yieldMax : 0;
+257: 
+258:   const revenue = useMemo(() => Number(totalKg) * Number(crop?.pricePerKg ?? 2.5), [totalKg, crop]);
+259:   const profit = useMemo(() => Number(revenue) - Number(totalCosts), [revenue, totalCosts]);
+260: 
+261:   const tasks = useMemo(() => {
+262:     if (!crop || !weather) return [];
+263:     return generateCropAgronomicTasks(crop, weather);
+264:   }, [crop, weather]);
+265: 
+266:   const borderClasses: Record<AgronomicTask['color'], string> = {
+267:     red: 'border-red-200 bg-red-50',
+268:     orange: 'border-orange-200 bg-orange-50',
+269:     yellow: 'border-yellow-200 bg-yellow-50',
+270:     blue: 'border-sky-200 bg-sky-50',
+271:     green: 'border-emerald-200 bg-emerald-50',
+272:   };
+273: 
+274:   const allEvents = useMemo(() => {
+275:     const events: TimelineEvent[] = [];
+276: 
+277:     // Add activities from database
+278:     activities.forEach((activity) => {
+279:       events.push({

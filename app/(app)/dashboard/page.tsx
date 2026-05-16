@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getMoonPhase } from '@/lib/moon';
 import TodayPriorityBox from '@/components/dashboard/TodayPriorityBox';
+import { AgromiaNewsFeed } from '@/components/AgromiaNewsFeed';
 import { createFeedback } from '@/lib/feedbackService';
-import { getDashboardStats, getUserCrops, getHarvestsTotalByCrop, type Crop } from '@/lib/cropDataService';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getUserCrops, getUserTotalCosts, type Crop } from '@/lib/cropService';
+import { getTotalHarvestsForUser } from '@/lib/cropDataService';
 import { useAuth } from '@/lib/auth-context';
 
 function formatCurrency(value: number) {
@@ -22,7 +23,6 @@ function formatCurrency(value: number) {
 
 export default function DashboardPage() {
   const [cropsData, setCropsData] = useState<Crop[]>([]);
-  const [harvestsByFarmId, setHarvestsByFarmId] = useState<Record<string, number>>({});
   const [totalCosts, setTotalCosts] = useState(0);
   const [totalRealProduction, setTotalRealProduction] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -64,7 +64,7 @@ export default function DashboardPage() {
       setFeedbackSuccess('Grazie! Il tuo suggerimento è stato inviato.');
       setFeedbackMessage('');
       closeFeedback();
-      setTimeout(() => setFeedbackSuccess(null), 7000);
+      window.setTimeout(() => setFeedbackSuccess(null), 7000);
     } catch (err) {
       console.error('[Dashboard] Feedback submit error:', err);
       setFeedbackError('Impossibile inviare il suggerimento. Riprova più tardi.');
@@ -74,32 +74,36 @@ export default function DashboardPage() {
   };
 
   const loadCrops = useCallback(async () => {
+    console.log('[Dashboard] 🚀 Starting crop load');
     const timeoutId = setTimeout(() => {
+      console.error('[Dashboard] ⏱️ Fetch timeout - setting error state');
       setLoading(false);
       setError('Il caricamento della dashboard ha superato il tempo massimo. Riprova.');
-    }, 10000);
+    }, 10000); // 10 second timeout
 
     try {
       setLoading(true);
       setError(null);
-
-      const cropsResult = await getUserCrops();
+      console.log('[Dashboard] 🔄 Calling getUserCrops, getUserTotalCosts and getTotalHarvestsForUser...');
+      const [cropsResult, costsResult, harvestResult] = await Promise.all([
+        getUserCrops(),
+        getUserTotalCosts(),
+        getTotalHarvestsForUser(),
+      ]);
+      console.log('[Dashboard] ✨ Successfully loaded crops:', cropsResult.length);
       setCropsData(cropsResult);
-
-      const stats = await getDashboardStats();
-      setTotalCosts(stats.totalCosts);
-      setTotalRealProduction(stats.totalRealProduction);
-
-      const harvestTotals = await getHarvestsTotalByCrop();
-      setHarvestsByFarmId(harvestTotals);
-
+      console.log('[Dashboard] ✨ Successfully loaded total costs:', costsResult);
+      setTotalCosts(costsResult);
+      console.log('[Dashboard] ✨ Successfully loaded total real production:', harvestResult);
+      setTotalRealProduction(harvestResult);
+      
       setLoading(false);
     } catch (err) {
-      console.error('[Dashboard] Error loading crops:', err);
+      console.error('[Dashboard] 💥 Error in loadCrops:', err);
       setError(
-        err instanceof Error
-          ? 'Errore nel caricamento della dashboard. Riprova più tardi.'
-          : 'Errore nel caricamento della dashboard'
+        err instanceof Error 
+          ? `Errore: ${err.message}` 
+          : 'Errore nel caricamento delle colture'
       );
       setLoading(false);
     } finally {
@@ -108,43 +112,45 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    console.log('[Dashboard] 🔍 useEffect triggered - authLoading:', authLoading, 'user:', !!user);
+    
     if (authLoading) {
+      console.log('[Dashboard] ⏳ Auth is still loading');
       return;
     }
 
     if (!user) {
+      console.log('[Dashboard] 🔐 No user - redirecting to login');
       router.replace('/login');
       return;
     }
 
+    console.log('[Dashboard] 👤 User authenticated:', user.id);
     loadCrops();
   }, [authLoading, user, router, loadCrops]);
 
   useEffect(() => {
-    if (authLoading || !user) {
+    if (typeof window === 'undefined' || authLoading || !user) {
       return;
     }
 
-    const channel = supabaseClient
-      .channel('realtime-dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'crops' }, () => {
-        loadCrops();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'costs' }, () => {
-        loadCrops();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'harvests' }, () => {
-        loadCrops();
-      })
-      .subscribe();
+    const handleDataUpdated = () => {
+      console.log('[Dashboard] 🔁 Data updated event received, refreshing dashboard...');
+      loadCrops();
+    };
 
+    window.addEventListener('agromia:data-updated', handleDataUpdated);
     return () => {
-      void channel.unsubscribe();
+      window.removeEventListener('agromia:data-updated', handleDataUpdated);
     };
   }, [authLoading, user, loadCrops]);
 
   const totalPlants = useMemo(
-    () => cropsData.reduce((sum, crop) => sum + crop.plants, 0),
+    () => {
+      const total = cropsData.reduce((sum, crop) => sum + crop.plants, 0);
+      console.log('[Dashboard] 📊 Total plants calculated:', total);
+      return total;
+    },
     [cropsData]
   );
 
@@ -167,10 +173,11 @@ export default function DashboardPage() {
     [cropsData]
   );
 
-  // Use actual harvest totals from Supabase
-  // totalRealProduction is loaded from the database
+  const previewCrops = useMemo(() => cropsData.slice(0, 4), [cropsData]);
+  const hasMoreCrops = cropsData.length > 4;
 
   if (authLoading || loading) {
+    console.log('[Dashboard] ⏳ Still loading - authLoading:', authLoading, 'loading:', loading);
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 py-10 sm:px-6 lg:px-10">
         <p className="rounded-3xl border border-slate-200 bg-white px-6 py-5 text-slate-700 shadow-sm">
@@ -187,7 +194,7 @@ export default function DashboardPage() {
           <h2 className="text-xl font-semibold text-red-900">Errore</h2>
           <p className="mt-2 text-red-700">{error}</p>
           <Button
-            onClick={() => router.refresh()}
+            onClick={() => window.location.reload()}
             className="mt-4"
           >
             Riprova
@@ -246,99 +253,183 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-olive">Dashboard</h1>
-          <p className="text-slate-600">Panoramica semplice della produzione, dei raccolti e dei costi.</p>
-        </div>
-        <div className="flex items-center">
-          <Button href="/add-crop" className="px-6 py-3 text-base">Aggiungi coltura</Button>
-        </div>
-      </div>
-
-      <section className="grid gap-4 lg:grid-cols-4">
-        <Card title="Totale piante" value={`${totalPlants}`} className="bg-white" />
-        <Card title="Produzione stimata" value={`${totalEstimatedMin.toFixed(1)} - ${totalEstimatedMax.toFixed(1)} kg`} className="bg-white" />
-        <Card title="Produzione reale" value={`${totalRealProduction.toFixed(1)} kg`} className="bg-white" />
-        <Card title="Costi totali" value={formatCurrency(totalCosts)} className="bg-white" />
-      </section>
-
-      {/* Today's priority with real weather and moon phase */}
-      <TodayPriorityBox 
-        moonLabel={moon.label}
-        isGrowingMoon={moon.isGrowing}
-        crops={cropsData}
-      />
-
-      {feedbackSuccess ? (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm">
-          {feedbackSuccess}
-        </div>
-      ) : null}
-
-      <section className="rounded-3xl border border-olive/15 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-700">
-              💡 Aiutaci a migliorare Agromia
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Agromia è in beta.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              I tuoi suggerimenti ci aiutano a costruire uno strumento realmente utile per chi coltiva.
+    <div className="space-y-10 lg:space-y-12">
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-10 sm:p-12 shadow-2xl">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-sm uppercase tracking-[0.3em] text-olive/80 font-semibold">Dashboard Premium</p>
+            <h1 className="mt-3 text-4xl font-bold text-slate-900 sm:text-5xl">Il tuo orto a portata di mano</h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+              Analisi dettagliate, consigli in tempo reale e una panoramica completa dei tuoi raccolti, dei costi e delle attività.
             </p>
           </div>
+          <div className="flex flex-wrap gap-3">
+            <Button href="/add-crop" className="px-6 py-3 text-base">Aggiungi coltura</Button>
+            <Button href="/dashboard" variant="outline" className="px-6 py-3 text-base">Aggiorna</Button>
+          </div>
+        </div>
 
-          <div className="flex items-center sm:justify-end">
-            <Button onClick={openFeedback} className="w-full max-w-xs">Invia suggerimento</Button>
+        <div className="mt-12 grid gap-8 xl:grid-cols-[1.5fr_1fr]">
+          <div className="grid gap-8 md:grid-cols-2">
+            <Card title="Totale piante" value={`${totalPlants}`} description="Colture attive nel tuo orto" className="bg-white min-h-[240px]" />
+            <Card title="Costi totali" value={formatCurrency(totalCosts)} description="Spesa registrata finora" className="bg-white min-h-[240px]" />
+            <Card title="Produzione stimata" value={`${totalEstimatedMin.toFixed(1)} - ${totalEstimatedMax.toFixed(1)} kg`} description="Intervallo previsto" className="bg-white min-h-[240px]" />
+            <Card title="Produzione reale" value={`${totalRealProduction.toFixed(1)} kg`} description="Raccolti effettivi" className="bg-white min-h-[240px]" />
+          </div>
+
+          <div className="rounded-[2rem] border border-olive/20 bg-gradient-to-br from-emerald-50 via-white to-olive/10 p-8 shadow-2xl">
+            <div>
+              <p className="text-sm uppercase tracking-[0.28em] text-olive/80">Progresso</p>
+              <h2 className="mt-3 text-3xl font-semibold text-slate-900">Obiettivo settimanale</h2>
+              <p className="mt-3 text-base leading-7 text-slate-600">
+                Registra almeno 2 attività e un raccolto per ottenere previsioni più accurate.
+              </p>
+            </div>
+            <div className="mt-6 overflow-hidden rounded-full bg-slate-200 p-1.5">
+              <div className="h-4 w-2/3 rounded-full bg-gradient-to-r from-emerald-600 to-olive transition-all duration-300" />
+            </div>
+            <p className="mt-4 text-base font-semibold text-slate-800">Stato attuale: 66% completato</p>
+
+            <div className="mt-8 rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-lg">
+              <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Motivazione</p>
+              <h3 className="mt-3 text-xl font-semibold text-slate-900">Ogni dato ti rende più efficiente</h3>
+              <p className="mt-3 text-base leading-7 text-slate-600">
+                Più informazioni inserisci, più Agromia ti aiuta a pianificare i lavori del tuo orto con precisione e sicurezza.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-olive/15 bg-white p-6 shadow-sm">
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold text-slate-900">Schede colture</h2>
-          <p className="mt-1 text-sm text-slate-600">Vai a una scheda coltura per aggiornare piante, raccolti e costi reali.</p>
-        </div>
+      <div className="grid gap-8 xl:grid-cols-[1.45fr_1fr]">
+        <div className="space-y-6">
+          <details open className="group rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
+            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-900">
+              Focus Oggi
+              <span className="text-sm text-slate-500 transition-transform duration-200 group-open:rotate-180">⌄</span>
+            </summary>
+            <div className="mt-5">
+              <TodayPriorityBox
+                moonLabel={moon.label}
+                isGrowingMoon={moon.isGrowing}
+                crops={cropsData}
+              />
+            </div>
+          </details>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          {cropsData.map((crop) => {
-            // Calculate production from database harvests
-            const estimatedMin = crop.plants * 3; // Simplified calculation
-            const estimatedMax = crop.plants * 6; // Simplified calculation
-            const real = harvestsByFarmId[crop.id] ?? 0; // Real harvest from Supabase
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl transition-all duration-300">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.28em] text-slate-500 font-semibold">Schede colture</p>
+                <h2 className="mt-3 text-2xl font-semibold text-slate-900">Panoramica rapida delle colture registrate</h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-600">Una visuale compatta e premium delle colture principali. Apri la pagina completa per gestire tutte le colture.</p>
+              </div>
+              <Button href="/my-crops" variant="outline" className="rounded-full px-5 py-3 text-sm font-semibold">
+                Vedi tutte le colture →
+              </Button>
+            </div>
 
-            return (
-              <div key={crop.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-slate-500">{crop.name}</p>
-                    {crop.custom_crop_id && (
-                      <span className="inline-block mt-1 px-2 py-1 text-xs bg-olive/10 text-olive rounded-full">
+            <div className="mt-8 grid gap-6 sm:grid-cols-2">
+              {previewCrops.map((crop) => (
+                <div key={crop.id} className="group rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-olive/20 hover:bg-white">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Coltura</p>
+                      <h3 className="mt-3 text-xl font-semibold text-slate-900">{crop.name}</h3>
+                    </div>
+                    {crop.custom_crop_id ? (
+                      <span className="inline-flex items-center rounded-full bg-olive/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-olive">
                         🌱 Personalizzata
                       </span>
-                    )}
-                    <p className="mt-2 text-lg font-semibold text-slate-900">{crop.plants} piante</p>
+                    ) : null}
                   </div>
-                  <Link href={`/dashboard/crops/${crop.id}`} className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20">
-                    Apri
-                  </Link>
+
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-3xl bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Piante</p>
+                      <p className="mt-2 text-2xl font-semibold text-slate-900">{crop.plants}</p>
+                    </div>
+                    <div className="rounded-3xl bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Registrata</p>
+                      <p className="mt-2 text-2xl font-semibold text-slate-900">{new Date(crop.created_at).toLocaleDateString('it-IT')}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex items-center justify-between gap-4">
+                    <span className="text-sm text-slate-500">ID: {crop.id.slice(0, 8)}</span>
+                    <Link href={`/dashboard/crops/${crop.id}`} className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20">
+                      Dettagli
+                    </Link>
+                  </div>
                 </div>
-                <div className="mt-5 space-y-3">
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Produzione stimata</p>
-                    <p className="mt-2 text-lg font-semibold text-slate-900">{estimatedMin.toFixed(1)} - {estimatedMax.toFixed(1)} kg</p>
-                  </div>
-                  <div className="rounded-3xl bg-white p-4">
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Produzione reale</p>
-                    <p className="mt-2 text-lg font-semibold text-slate-900">{real.toFixed(1)} kg</p>
-                  </div>
-                </div>
+              ))}
+            </div>
+
+            {hasMoreCrops ? (
+              <div className="mt-8 flex justify-end">
+                <Button href="/my-crops" variant="outline" className="rounded-full px-6 py-3 text-sm font-semibold">
+                  Vedi tutte le colture →
+                </Button>
               </div>
-            );
-          })}
+            ) : null}
+          </section>
+
+          <details open className="group rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
+            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-900">
+              Suggerimenti
+              <span className="text-sm text-slate-500 transition-transform duration-200 group-open:rotate-180">⌄</span>
+            </summary>
+            <div className="mt-5 space-y-6">
+              {feedbackSuccess ? (
+                <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 shadow-sm">
+                  {feedbackSuccess}
+                </div>
+              ) : null}
+
+              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
+                <p className="text-sm font-semibold text-slate-900">Il tuo feedback conta</p>
+                <p className="mt-2 text-base text-slate-600">
+                  Contribuisci a migliorare Agromia: inserisci idee o problemi per la prossima versione.
+                </p>
+                <Button onClick={openFeedback} className="mt-4 w-full sm:w-auto">
+                  Invia suggerimento
+                </Button>
+              </div>
+            </div>
+          </details>
         </div>
-      </section>
+
+        <div className="space-y-6">
+          <details open className="group rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
+            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-900">
+              News e aggiornamenti
+              <span className="text-sm text-slate-500 transition-transform duration-200 group-open:rotate-180">⌄</span>
+            </summary>
+            <div className="mt-5">
+              <AgromiaNewsFeed limit={2} />
+            </div>
+          </details>
+
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
+            <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Insight</p>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-900">Analisi live</h2>
+            <p className="mt-3 text-base leading-7 text-slate-600">
+              Monitora i trend del tuo orto, dai nuovi raccolti alle attività pianificate.
+            </p>
+
+            <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              <div className="rounded-3xl bg-slate-50 p-6">
+                <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Colture attive</p>
+                <p className="mt-3 text-3xl font-semibold text-slate-900">{cropsData.length}</p>
+              </div>
+              <div className="rounded-3xl bg-slate-50 p-6">
+                <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Attività previste</p>
+                <p className="mt-3 text-3xl font-semibold text-slate-900">{Math.max(1, Math.min(5, cropsData.length))}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {isFeedbackOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4 py-6 sm:px-6">

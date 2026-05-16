@@ -1,0 +1,60 @@
+﻿60: 
+61: export default function CropPage() {
+62:   const params = useParams();
+63:   const router = useRouter();
+64:   const rawId = params.id;
+65:   const cropIdFromParams = Array.isArray(rawId) ? rawId[0] ?? '' : rawId ?? '';
+66: 
+67:   const [crop, setCrop] = useState<CropDetail | null>(null);
+68:   const [costs, setCosts] = useState<Cost[]>([]);
+69:   const [harvests, setHarvests] = useState<Harvest[]>([]);
+70:   const [activities, setActivities] = useState<Activity[]>([]);
+71:   
+72:   const [kgValue, setKgValue] = useState('');
+73:   const [costAmount, setCostAmount] = useState('');
+74:   const [costNote, setCostNote] = useState('');
+75:   const [error, setError] = useState('');
+76:   const [pricePerKg, setPricePerKg] = useState('');
+77:   const [isEditingCrop, setIsEditingCrop] = useState(false);
+78:   const [editCropName, setEditCropName] = useState('');
+79:   const [editCropPlants, setEditCropPlants] = useState('');
+80:   const [editCropTransplantDate, setEditCropTransplantDate] = useState('');
+81:   const [editCropSellingPrice, setEditCropSellingPrice] = useState('');
+82:   const [editingCostId, setEditingCostId] = useState<string | null>(null);
+83:   const [editCostTitle, setEditCostTitle] = useState('');
+84:   const [editCostAmount, setEditCostAmount] = useState('');
+85:   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+86:   const [editActivityType, setEditActivityType] = useState<Activity['type']>('trapianto');
+87:   const [editActivityDate, setEditActivityDate] = useState('');
+88:   const [editingHarvestId, setEditingHarvestId] = useState<string | null>(null);
+89:   const [editHarvestKg, setEditHarvestKg] = useState('');
+90:   const [editHarvestNotes, setEditHarvestNotes] = useState('');
+91:   const [eventType, setEventType] = useState<Activity['type']>('trapianto');
+92:   const [activityDate, setActivityDate] = useState(
+93:     new Date().toISOString().split('T')[0]
+94:   );
+95:   const [loading, setLoading] = useState(true);
+96:   const [fetchError, setFetchError] = useState<string | null>(null);
+97:   const [relatedDataError, setRelatedDataError] = useState<string | null>(null);
+98:   const [isSubmitting, setIsSubmitting] = useState(false);
+99:   const [weather, setWeather] = useState<Weather | null>(null);
+100:   const [weatherLoading, setWeatherLoading] = useState(true);
+101: 
+102:   const { user, loading: authLoading } = useAuth();
+103: 
+104:   useEffect(() => {
+105:     const loadCrop = async () => {
+106:       if (authLoading) return;
+107:       if (!user || !cropIdFromParams) {
+108:         setCrop(null);
+109:         setLoading(false);
+110:         return;
+111:       }
+112: 
+113:       setLoading(true);
+114:       setFetchError(null);
+115: 
+116:       try {
+117:         const data = await getCropById(cropIdFromParams);
+118: 
+119:         if (!data) {
