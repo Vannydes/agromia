@@ -205,12 +205,24 @@ export function InteractiveDemo() {
     return {
       minKg,
       maxKg,
+      avgKg,
       harvestPeriod: cropDetail.period,
       idealWeather: cropDetail.weather,
       tip: cropDetail.tip,
       revenue,
     };
   }, [selectedCrop, plantCount, cropDetail]);
+
+  const riskWarning = useMemo(() => {
+    const humidityCrops = ['lattuga', 'basilico', 'fragola', 'rucola', 'insalata'];
+    if (humidityCrops.includes(selectedCrop.key)) {
+      return 'Alto rischio umidità primaverile: proteggi le foglie e mantieni il terreno drenato.';
+    }
+    if (['veneto', 'emilia-romagna', 'lombardia'].includes(region)) {
+      return 'Attenzione: attenzione umidità primaverile nel nord Italia, controlla il drenaggio.';
+    }
+    return 'Buone condizioni previste. Mantieni irrigazione e raccolta in equilibrio.';
+  }, [selectedCrop.key, region]);
 
   const handleCalculate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -232,8 +244,8 @@ export function InteractiveDemo() {
               🌱 Simula il tuo orto in 30 secondi
             </h2>
             <p className="max-w-2xl text-lg leading-8 text-slate-600">
-              Scopri produzione stimata, raccolti e consigli agricoli prima ancora di registrarti.
-              Prova una simulazione rapida con colture, regioni e previsioni di guadagno per il tuo orto.
+              Scopri produzione stimata, valore economico e suggerimenti agronomici prima ancora di registrarti.
+              Prova il simulatore istantaneo e ricevi un piano rapido per il tuo orto.
             </p>
           </div>
 
@@ -285,7 +297,7 @@ export function InteractiveDemo() {
               {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
               <Button type="submit" className="w-full py-4 text-base font-semibold">
-                Calcola il tuo orto
+                Calcola il potenziale del tuo orto
               </Button>
             </form>
 
@@ -300,20 +312,20 @@ export function InteractiveDemo() {
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-lg">
               <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Produzione stimata</p>
-              <h3 className="mt-4 text-3xl font-semibold text-slate-900">{formatKg(result.minKg)}</h3>
-              <p className="mt-2 text-slate-600">Minimo previsto dal tuo orto</p>
+              <h3 className="mt-4 text-3xl font-semibold text-slate-900">{formatKg(result.avgKg)}</h3>
+              <p className="mt-2 text-slate-600">Produzione media prevista dal tuo orto.</p>
             </div>
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-lg">
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Produzione stimata</p>
-              <h3 className="mt-4 text-3xl font-semibold text-slate-900">{formatKg(result.maxKg)}</h3>
-              <p className="mt-2 text-slate-600">Massimo possibile raccolto</p>
+              <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Valore stimato</p>
+              <h3 className="mt-4 text-3xl font-semibold text-olive-900">{formatEuro(result.revenue)}</h3>
+              <p className="mt-2 text-slate-600">Ricavo potenziale basato sulla coltura selezionata.</p>
             </div>
 
             <div className="rounded-[2rem] border border-olive/15 bg-olive/5 p-6 shadow-lg">
-              <p className="text-sm uppercase tracking-[0.3em] text-olive-700">Guadagno simulato</p>
-              <h3 className="mt-4 text-3xl font-semibold text-olive-900">{formatEuro(result.revenue)}</h3>
-              <p className="mt-2 text-olive-700">Stima ricavo senza registrazione.</p>
+              <p className="text-sm uppercase tracking-[0.3em] text-olive-700">Potenziale raccolto</p>
+              <h3 className="mt-4 text-3xl font-semibold text-olive-900">{formatKg(result.maxKg)}</h3>
+              <p className="mt-2 text-olive-700">Raccolto massimo nelle condizioni migliori.</p>
             </div>
           </div>
         ) : null}
@@ -329,12 +341,12 @@ export function InteractiveDemo() {
               <h4 className="mt-4 text-xl font-semibold text-slate-900">{result.idealWeather}</h4>
             </div>
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-lg">
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Suggerimento</p>
+              <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Suggerimento agronomico</p>
               <h4 className="mt-4 text-xl font-semibold text-slate-900">{result.tip}</h4>
             </div>
-            <div className="rounded-[2rem] border border-slate-200 bg-emerald-50 p-6 shadow-lg">
-              <p className="text-sm uppercase tracking-[0.3em] text-emerald-700">Coltura</p>
-              <h4 className="mt-4 text-xl font-semibold text-slate-900">{selectedCrop.config.name}</h4>
+            <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 shadow-lg">
+              <p className="text-sm uppercase tracking-[0.3em] text-amber-700">Rischio</p>
+              <h4 className="mt-4 text-xl font-semibold text-amber-900">{riskWarning}</h4>
             </div>
           </div>
         ) : null}
@@ -345,11 +357,10 @@ export function InteractiveDemo() {
               <p className="text-sm uppercase tracking-[0.35em] text-olive/80">Prossimo passo</p>
               <h3 className="text-3xl font-bold text-slate-900">🌱 Vuoi salvare il tuo orto e monitorarlo davvero?</h3>
               <p className="mx-auto max-w-2xl text-slate-600">
-                Registrati gratis e trasforma questa simulazione in una vera gestione del tuo orto con raccolti,
-                consigli e calendario agricolo personalizzato.
+                Crea gratuitamente il tuo profilo Agromia e trasforma questa simulazione in una gestione reale con raccolti, consigli e calendario agricolo personalizzato.
               </p>
               <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-center">
-                <Button href="/register" className="w-full sm:w-auto py-4 text-base">Registrati gratis</Button>
+                <Button href="/register" className="w-full sm:w-auto py-4 text-base">Crea il mio orto digitale</Button>
                 <Button href="/login" variant="outline" className="w-full sm:w-auto py-4 text-base">Accedi</Button>
               </div>
             </div>

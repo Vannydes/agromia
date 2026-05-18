@@ -384,8 +384,8 @@ export default function CropPage() {
 
   if (authLoading || loading) {
     return (
-      <main className="min-h-screen bg-beige px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(223,236,220,0.55),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(216,191,145,0.18),transparent_35%),#f7f3eb] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl">
           <h1 className="text-2xl font-semibold text-slate-900">Caricamento coltura...</h1>
           <p className="mt-3 text-slate-600">Attendi mentre carichiamo i dettagli della tua coltura.</p>
         </div>
@@ -395,7 +395,7 @@ export default function CropPage() {
 
   if (!crop) {
     return (
-      <main className="min-h-screen bg-beige px-4 py-10 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(223,236,220,0.55),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(216,191,145,0.18),transparent_35%),#f7f3eb] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl rounded-3xl border border-red-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-red-700">Coltura non trovata</h1>
           <p className="mt-3 text-slate-600">{fetchError ?? 'Controlla l\'ID della coltura o torna alla dashboard.'}</p>
@@ -408,7 +408,7 @@ export default function CropPage() {
   }
 
   return (
-    <main className="min-h-screen bg-beige px-4 py-10 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(223,236,220,0.55),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(216,191,145,0.18),transparent_35%),#f7f3eb] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl space-y-12">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -427,33 +427,33 @@ export default function CropPage() {
         </div>
 
         <section className="grid gap-6 lg:grid-cols-6">
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+          <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
             <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Piante</p>
             <p className="mt-4 text-3xl font-semibold text-slate-900">{crop.plants}</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+          <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
             <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Spaziatura</p>
             <p className="mt-4 text-3xl font-semibold text-slate-900">{crop.spacing} cm</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+          <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
             <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Stimato</p>
             <p className="mt-4 text-3xl font-semibold text-slate-900">{formatKg(estimatedMin)} - {formatKg(estimatedMax)}</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+          <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
             <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Reale</p>
             <p className="mt-4 text-3xl font-semibold text-slate-900">{formatKg(Number(totalKg))}</p>
           </div>
-          <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+          <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
             <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Ricavi</p>
             <p className="mt-4 text-3xl font-semibold text-green-600">{formatCurrency(revenue)}</p>
           </div>
-          <div className="rounded-3xl border-2 border-green-300 bg-green-50 p-8 shadow-md transition hover:shadow-lg">
+          <div className="rounded-[2rem] border border-emerald-100 bg-emerald-50/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
             <p className="text-sm uppercase tracking-[0.3em] text-green-700 font-medium">Profitto</p>
             <p className={`mt-4 text-4xl font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(profit)}</p>
           </div>
         </section>
 
-        <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+        <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
           <h2 className="text-xl font-semibold text-slate-900">Attività consigliate</h2>
 
           <div className="mt-6 space-y-6">
@@ -473,13 +473,13 @@ export default function CropPage() {
             </div>
 
             {weatherLoading && !weather && tasks.length === 0 ? (
-              <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+              <div className="rounded-[1.75rem] border border-white/70 bg-white/90 p-6 text-sm text-slate-600 shadow-sm">
                 ⏳ Caricamento delle attività consigliate...
               </div>
             ) : tasks.length > 0 ? (
               <div className="grid gap-4">
                 {tasks.map((task) => (
-                  <div key={task.id} className={`rounded-3xl border-2 p-6 shadow-md transition hover:shadow-lg ${borderClasses[task.color]}`}>
+                  <div key={task.id} className={`rounded-[1.75rem] border-2 p-6 shadow-[0_20px_45px_rgba(24,90,52,0.09)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_25px_65px_rgba(24,90,52,0.13)] ${borderClasses[task.color]}`}>
                     <div className="flex items-start gap-4 sm:gap-6">
                       <div className="text-4xl shrink-0 leading-none">{task.icon}</div>
                       <div className="flex-1 min-w-0">
@@ -491,7 +491,7 @@ export default function CropPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-3xl border border-card bg-card p-5 text-sm text-muted">
+              <div className="rounded-[1.75rem] border border-white/70 bg-white/90 p-5 text-sm text-slate-600 shadow-sm">
                 Oggi l’orto non richiede interventi urgenti. Ottimo lavoro 🌱
               </div>
             )}
@@ -500,7 +500,7 @@ export default function CropPage() {
 
         <div className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-8">
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
               <h2 className="text-xl font-semibold text-slate-900">Prezzo di vendita</h2>
               <form onSubmit={handleUpdatePrice} className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
                 <Input
@@ -516,7 +516,7 @@ export default function CropPage() {
               </form>
             </div>
 
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
               <h2 className="text-xl font-semibold text-slate-900">Aggiungi raccolto</h2>
               <form onSubmit={handleAddHarvest} className="mt-6 grid gap-4 sm:grid-cols-[1fr_auto]">
                 <Input
@@ -534,7 +534,7 @@ export default function CropPage() {
               </form>
             </div>
 
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
               <h2 className="text-xl font-semibold text-slate-900">Aggiungi costo</h2>
               <form onSubmit={handleAddCost} className="mt-6 grid gap-4">
                 <Input
@@ -574,26 +574,26 @@ export default function CropPage() {
           </div>
 
           <div className="space-y-8">
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
               <h3 className="text-xl font-semibold text-slate-900">Produzione</h3>
               <p className="mt-3 text-slate-600">Reale vs stimata basata sulle piante salvate.</p>
               <div className="mt-6 space-y-4">
-                <div className="rounded-3xl border border-green-200 bg-green-50 p-5">
+                <div className="rounded-[1.75rem] border border-emerald-100 bg-emerald-50/90 p-5 shadow-sm">
                   <p className="text-sm uppercase tracking-[0.3em] text-green-700 font-medium">Reale</p>
                   <p className="mt-3 text-2xl font-bold text-green-600">{Number(totalKg).toFixed(1)} kg</p>
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <div className="rounded-[1.75rem] border border-white/70 bg-slate-50/90 p-5 shadow-sm">
                   <p className="text-sm uppercase tracking-[0.3em] text-slate-600 font-medium">Stimata</p>
                   <p className="mt-3 text-2xl font-semibold text-slate-900">{estimatedMin.toFixed(1)} - {estimatedMax.toFixed(1)} kg</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
               <h3 className="text-xl font-semibold text-slate-900">Storico raccolti</h3>
               <div className="mt-6 space-y-3">
                 {harvests.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
+                  <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50/80 p-4 text-sm text-slate-600">
                     Non hai ancora raccolto nulla? Quando raccogli i primi frutti, registrali qui.
                   </div>
                 ) : (
@@ -609,11 +609,11 @@ export default function CropPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
               <h3 className="text-xl font-semibold text-slate-900">Costi</h3>
               <div className="mt-6 space-y-3">
                 {costs.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
+                  <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50/80 p-4 text-sm text-slate-600">
                     Nessun costo registrato. Semi, concimi e materiali appariranno qui.
                   </div>
                 ) : (
@@ -632,7 +632,7 @@ export default function CropPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
               <h2 className="text-xl font-semibold text-slate-900">Aggiungi attività</h2>
               <form onSubmit={handleAddEvent} className="mt-6 grid gap-4">
                 <label className="block space-y-2 text-sm font-medium text-slate-700">
@@ -641,7 +641,7 @@ export default function CropPage() {
                     value={eventType}
                     onChange={(event) => setEventType(event.target.value as ActivityType)}
                     disabled={isSubmitting}
-                    className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
+                    className="w-full rounded-[1.75rem] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
                   >
                     <option value="trapianto">Trapianto</option>
                     <option value="semina">Semina</option>
@@ -657,7 +657,7 @@ export default function CropPage() {
                     value={activityDate}
                     onChange={(e) => setActivityDate(e.target.value)}
                     disabled={isSubmitting}
-                    className="w-full rounded-3xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
+                    className="w-full rounded-[1.75rem] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-olive focus:ring-2 focus:ring-olive/20 disabled:opacity-50"
                   />
                 </label>
                 <div className="flex justify-end">
@@ -668,11 +668,11 @@ export default function CropPage() {
               </form>
             </div>
 
-            <div className="rounded-3xl border border-olive/10 bg-white p-8 shadow-md transition hover:shadow-lg">
+            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_85px_rgba(24,90,52,0.15)]">
               <h3 className="text-xl font-semibold text-slate-900">Timeline</h3>
               <div className="mt-6 space-y-3">
                 {allEvents.length === 0 ? (
-                  <div className="rounded-3xl border border-dashed border-card bg-surface p-4 text-sm text-muted">
+                  <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50/80 p-4 text-sm text-slate-600">
                     La tua timeline è vuota. Ogni attività dell’orto verrà salvata qui.
                   </div>
                 ) : (
@@ -697,3 +697,4 @@ export default function CropPage() {
     </main>
   );
 }
+

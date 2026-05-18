@@ -7,11 +7,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseStyles =
-  'inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-sm transition disabled:opacity-60';
+  'inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition duration-300 disabled:opacity-60 disabled:cursor-not-allowed';
 
 const variants = {
-  default: 'bg-olive text-white hover:bg-emerald-700',
-  outline: 'border border-slate-300 bg-white text-slate-900 hover:bg-slate-100'
+  default: 'bg-olive text-white shadow-[0_18px_45px_rgba(20,80,40,0.18)] hover:bg-emerald-700',
+  outline: 'border border-olive/20 bg-white text-slate-900 shadow-sm hover:bg-olive-50'
 };
 
 export function Button({ href, variant = 'default', className = '', children, type = 'button', ...props }: ButtonProps) {

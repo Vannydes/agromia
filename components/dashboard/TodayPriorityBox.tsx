@@ -68,91 +68,71 @@ export default function TodayPriorityBox({ moonLabel, isGrowingMoon, crops }: Pr
   };
 
   return (
-    <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5 shadow-sm">
-      {/* Header */}
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-emerald-700">
-          Priorità Oggi
-        </h3>
+    <div className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_25px_70px_rgba(20,80,40,0.1)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_30px_85px_rgba(20,80,40,0.15)]">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.4em] text-emerald-700">Priorità Oggi</p>
+          <h3 className="mt-2 text-2xl font-semibold text-slate-950">Il tuo assistente agricolo</h3>
+        </div>
+        <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-800 shadow-sm">
+          {formattedDate}
+        </span>
       </div>
 
-      {/* Main content - grid layout */}
-      <div className="space-y-4">
-        {/* Date */}
-        <div className="flex items-start gap-3 pb-3 border-b border-emerald-100">
-          <span className="text-2xl">📅</span>
-          <div>
-            <p className="text-sm text-slate-600">Data</p>
-            <p className="text-lg font-semibold text-slate-900">{formattedDate}</p>
+      {!loading && weather && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-[1.75rem] bg-emerald-50 p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-[0.28em] text-emerald-700">Meteo</p>
+            <p className="mt-3 text-lg font-semibold text-slate-950">{weather.temp}°C</p>
+            <p className="mt-1 text-sm text-slate-600">{weather.description}</p>
           </div>
-        </div>
-
-        {/* Moon phase */}
-        <div className="flex items-start gap-3 pb-3 border-b border-emerald-100">
-          <span className="text-2xl">{isGrowingMoon ? '🌙' : '🌘'}</span>
-          <div>
-            <p className="text-sm text-slate-600">Fase lunare</p>
-            <p className="text-lg font-semibold text-slate-900">{moonLabel}</p>
-            <p className="text-xs text-emerald-700 mt-1">
-              {isGrowingMoon
-                ? '✅ Ideale: Trapianti, colture da frutto'
-                : '✅ Ideale: Radici, manutenzione terreno'}
+          <div className="rounded-[1.75rem] bg-amber-50 p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-[0.28em] text-olive-700">Umidità</p>
+            <p className="mt-3 text-lg font-semibold text-slate-950">{weather.humidity}%</p>
+            <p className="mt-1 text-sm text-slate-600">Vento {weather.wind} km/h</p>
+          </div>
+          <div className="rounded-[1.75rem] bg-slate-50 p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Luna</p>
+            <p className="mt-3 text-lg font-semibold text-slate-950">{moonLabel}</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {isGrowingMoon ? 'Crescita e trapianto consigliati' : 'Ottimo per radici e cura del terreno'}
             </p>
           </div>
         </div>
+      )}
 
-        {/* Weather - only show if loaded */}
-        {!loading && weather && (
-          <div className="flex items-start gap-3 pb-3 border-b border-emerald-100">
-            <span className="text-2xl">🌡️</span>
-            <div className="flex-1">
-              <p className="text-sm text-slate-600">Condizioni meteo</p>
-              <div className="flex flex-col gap-1 mt-1 sm:flex-row sm:items-center">
-                <p className="text-lg font-semibold text-slate-900">{weather.temp}°C</p>
-                <p className="text-sm text-slate-600">Umidità {weather.humidity}%</p>
-                <p className="text-sm text-slate-600">Vento {weather.wind} km/h</p>
-              </div>
-              <p className="text-sm text-slate-700 mt-1">{weather.description}</p>
-            </div>
+      <div className="mt-6">
+        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Cosa fare oggi</p>
+        {loading ? (
+          <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 shadow-sm">
+            ⏳ Caricamento delle attività...
           </div>
-        )}
-
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Cosa fare oggi</p>
-          </div>
-
-          {loading ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              ⏳ Caricamento delle attività...
-            </div>
-          ) : tasks.length > 0 ? (
-            <div className="grid gap-3">
-              {tasks.map((task) => (
-                <div key={task.id} className={`rounded-3xl border p-4 shadow-sm ${borderClasses[task.color]}`}>
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl shrink-0">{task.icon}</div>
-                    <div>
-                      <p className="font-semibold text-slate-900">{task.title}</p>
-                      <p className="mt-1 text-sm text-slate-600">{task.description}</p>
-                    </div>
+        ) : tasks.length > 0 ? (
+          <div className="mt-4 grid gap-4">
+            {tasks.map((task) => (
+              <div key={task.id} className={`rounded-[1.75rem] border border-white/70 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-xl ${borderClasses[task.color]}`}>
+                <div className="flex items-start gap-4">
+                  <div className="mt-1 text-3xl">{task.icon}</div>
+                  <div>
+                    <p className="font-semibold text-slate-950">{task.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{task.description}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-card bg-card p-4 text-sm text-muted">
-              Oggi l’orto non richiede interventi urgenti. Ottimo lavoro 🌱
-            </div>
-          )}
-        </div>
-
-        {error && !weather && (
-          <p className="text-xs text-slate-500 italic">
-            💡 Abilita la geolocalizzazione del browser per ottenere meteo reale e attività più precise.
-          </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 shadow-sm">
+            Oggi l’orto non richiede interventi urgenti. Ottimo lavoro 🌱
+          </div>
         )}
       </div>
+
+      {error && !weather && (
+        <p className="mt-4 text-xs text-slate-500 italic">
+          💡 Abilita la geolocalizzazione del browser per ottenere meteo reale e attività più precise.
+        </p>
+      )}
     </div>
   );
 }

@@ -254,11 +254,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10 lg:space-y-12">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-10 sm:p-12 shadow-2xl">
+      <section className="rounded-[2rem] border border-white/70 bg-white/90 p-10 sm:p-12 shadow-[0_25px_80px_rgba(24,90,52,0.12)] backdrop-blur-xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-sm uppercase tracking-[0.3em] text-olive/80 font-semibold">Dashboard Premium</p>
-            <h1 className="mt-3 text-4xl font-bold text-slate-900 sm:text-5xl">Il tuo orto a portata di mano</h1>
+            <p className="text-sm uppercase tracking-[0.3em] text-emerald-700 font-semibold">Dashboard Premium</p>
+            <h1 className="mt-3 text-4xl font-bold text-slate-950 sm:text-5xl">Il tuo orto a portata di mano</h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
               Analisi dettagliate, consigli in tempo reale e una panoramica completa dei tuoi raccolti, dei costi e delle attività.
             </p>
@@ -277,10 +277,10 @@ export default function DashboardPage() {
             <Card title="Produzione reale" value={`${totalRealProduction.toFixed(1)} kg`} description="Raccolti effettivi" className="bg-white min-h-[240px]" />
           </div>
 
-          <div className="rounded-[2rem] border border-olive/20 bg-gradient-to-br from-emerald-50 via-white to-olive/10 p-8 shadow-2xl">
+          <div className="rounded-[2rem] border border-white/80 bg-gradient-to-br from-emerald-50/80 via-white to-olive/10 p-8 shadow-[0_25px_80px_rgba(24,90,52,0.12)] backdrop-blur-xl">
             <div>
-              <p className="text-sm uppercase tracking-[0.28em] text-olive/80">Progresso</p>
-              <h2 className="mt-3 text-3xl font-semibold text-slate-900">Obiettivo settimanale</h2>
+              <p className="text-sm uppercase tracking-[0.28em] text-emerald-700">Progresso</p>
+              <h2 className="mt-3 text-3xl font-semibold text-slate-950">Obiettivo settimanale</h2>
               <p className="mt-3 text-base leading-7 text-slate-600">
                 Registra almeno 2 attività e un raccolto per ottenere previsioni più accurate.
               </p>
@@ -290,9 +290,9 @@ export default function DashboardPage() {
             </div>
             <p className="mt-4 text-base font-semibold text-slate-800">Stato attuale: 66% completato</p>
 
-            <div className="mt-8 rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-lg">
+            <div className="mt-8 rounded-[1.75rem] border border-white/70 bg-white/90 p-8 shadow-[0_20px_50px_rgba(24,90,52,0.08)]">
               <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Motivazione</p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-900">Ogni dato ti rende più efficiente</h3>
+              <h3 className="mt-3 text-xl font-semibold text-slate-950">Ogni dato ti rende più efficiente</h3>
               <p className="mt-3 text-base leading-7 text-slate-600">
                 Più informazioni inserisci, più Agromia ti aiuta a pianificare i lavori del tuo orto con precisione e sicurezza.
               </p>
@@ -303,8 +303,8 @@ export default function DashboardPage() {
 
       <div className="grid gap-8 xl:grid-cols-[1.45fr_1fr]">
         <div className="space-y-6">
-          <details open className="group rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
-            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-900">
+          <details open className="group rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl">
+            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-950">
               Focus Oggi
               <span className="text-sm text-slate-500 transition-transform duration-200 group-open:rotate-180">⌄</span>
             </summary>
@@ -317,7 +317,7 @@ export default function DashboardPage() {
             </div>
           </details>
 
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl transition-all duration-300">
+          <section className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl transition-all duration-300">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.28em] text-slate-500 font-semibold">Schede colture</p>
@@ -331,7 +331,7 @@ export default function DashboardPage() {
 
             <div className="mt-8 grid gap-6 sm:grid-cols-2">
               {previewCrops.map((crop) => (
-                <div key={crop.id} className="group rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-olive/20 hover:bg-white">
+                <div key={crop.id} className="group rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_15px_35px_rgba(24,90,52,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_55px_rgba(24,90,52,0.12)]">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Coltura</p>
@@ -374,8 +374,8 @@ export default function DashboardPage() {
             ) : null}
           </section>
 
-          <details open className="group rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
-            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-900">
+          <details open className="group rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl">
+            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-950">
               Suggerimenti
               <span className="text-sm text-slate-500 transition-transform duration-200 group-open:rotate-180">⌄</span>
             </summary>
@@ -386,8 +386,8 @@ export default function DashboardPage() {
                 </div>
               ) : null}
 
-              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6">
-                <p className="text-sm font-semibold text-slate-900">Il tuo feedback conta</p>
+              <div className="rounded-[1.75rem] border border-white/70 bg-white/90 p-6 shadow-sm">
+                <p className="text-sm font-semibold text-slate-950">Il tuo feedback conta</p>
                 <p className="mt-2 text-base text-slate-600">
                   Contribuisci a migliorare Agromia: inserisci idee o problemi per la prossima versione.
                 </p>
@@ -400,8 +400,8 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-6">
-          <details open className="group rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
-            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-900">
+          <details open className="group rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl">
+            <summary className="flex cursor-pointer items-center justify-between gap-4 text-xl font-semibold text-slate-950">
               News e aggiornamenti
               <span className="text-sm text-slate-500 transition-transform duration-200 group-open:rotate-180">⌄</span>
             </summary>
@@ -410,7 +410,7 @@ export default function DashboardPage() {
             </div>
           </details>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
+          <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_25px_70px_rgba(24,90,52,0.10)] backdrop-blur-xl">
             <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Insight</p>
             <h2 className="mt-3 text-2xl font-semibold text-slate-900">Analisi live</h2>
             <p className="mt-3 text-base leading-7 text-slate-600">
