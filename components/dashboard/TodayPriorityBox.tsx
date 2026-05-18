@@ -80,18 +80,18 @@ export default function TodayPriorityBox({ moonLabel, isGrowingMoon, crops }: Pr
       </div>
 
       {!loading && weather && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-[1.75rem] bg-emerald-50 p-4 shadow-sm">
+        <div className="grid w-full gap-4 grid-cols-1 sm:grid-cols-3">
+          <div className="rounded-[1.75rem] bg-emerald-50 p-4 shadow-sm min-w-0">
             <p className="text-xs uppercase tracking-[0.28em] text-emerald-700">Meteo</p>
             <p className="mt-3 text-lg font-semibold text-slate-950">{weather.temp}°C</p>
             <p className="mt-1 text-sm text-slate-600">{weather.description}</p>
           </div>
-          <div className="rounded-[1.75rem] bg-amber-50 p-4 shadow-sm">
+          <div className="rounded-[1.75rem] bg-amber-50 p-4 shadow-sm min-w-0">
             <p className="text-xs uppercase tracking-[0.28em] text-olive-700">Umidità</p>
             <p className="mt-3 text-lg font-semibold text-slate-950">{weather.humidity}%</p>
             <p className="mt-1 text-sm text-slate-600">Vento {weather.wind} km/h</p>
           </div>
-          <div className="rounded-[1.75rem] bg-slate-50 p-4 shadow-sm">
+          <div className="rounded-[1.75rem] bg-slate-50 p-4 shadow-sm min-w-0">
             <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Luna</p>
             <p className="mt-3 text-lg font-semibold text-slate-950">{moonLabel}</p>
             <p className="mt-1 text-sm text-slate-600">

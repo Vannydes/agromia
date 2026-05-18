@@ -214,7 +214,7 @@ export default function DashboardPage() {
             <p className="text-slate-600">Panoramica semplice della produzione, dei raccolti e dei costi.</p>
           </div>
           <div className="flex items-center">
-            <Button href="/add-crop" className="px-6 py-3 text-base">Aggiungi coltura</Button>
+            <Button href="/add-crop" className="w-full sm:w-auto px-6 py-3 text-base">Aggiungi coltura</Button>
           </div>
         </div>
 
@@ -253,8 +253,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-10 lg:space-y-12">
-      <section className="rounded-[2rem] border border-white/70 bg-white/90 p-10 sm:p-12 shadow-[0_25px_80px_rgba(24,90,52,0.12)] backdrop-blur-xl">
+    <div className="w-full max-w-full overflow-x-hidden space-y-10 lg:space-y-12">
+      <section className="w-full max-w-full rounded-[2rem] border border-white/70 bg-white/90 p-10 sm:p-12 shadow-[0_25px_80px_rgba(24,90,52,0.12)] backdrop-blur-xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-sm uppercase tracking-[0.3em] text-emerald-700 font-semibold">Dashboard Premium</p>
@@ -264,8 +264,8 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button href="/add-crop" className="px-6 py-3 text-base">Aggiungi coltura</Button>
-            <Button href="/dashboard" variant="outline" className="px-6 py-3 text-base">Aggiorna</Button>
+            <Button href="/add-crop" className="w-full sm:w-auto px-6 py-3 text-base">Aggiungi coltura</Button>
+            <Button href="/dashboard" variant="outline" className="w-full sm:w-auto px-6 py-3 text-base">Aggiorna</Button>
           </div>
         </div>
 
@@ -324,14 +324,14 @@ export default function DashboardPage() {
                 <h2 className="mt-3 text-2xl font-semibold text-slate-900">Panoramica rapida delle colture registrate</h2>
                 <p className="mt-2 max-w-2xl text-sm text-slate-600">Una visuale compatta e premium delle colture principali. Apri la pagina completa per gestire tutte le colture.</p>
               </div>
-              <Button href="/my-crops" variant="outline" className="rounded-full px-5 py-3 text-sm font-semibold">
+              <Button href="/my-crops" variant="outline" className="w-full sm:w-auto rounded-full px-5 py-3 text-sm font-semibold">
                 Vedi tutte le colture →
               </Button>
             </div>
 
-            <div className="mt-8 grid gap-6 sm:grid-cols-2">
+            <div className="mt-8 grid w-full gap-6 grid-cols-1 sm:grid-cols-2">
               {previewCrops.map((crop) => (
-                <div key={crop.id} className="group rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_15px_35px_rgba(24,90,52,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_55px_rgba(24,90,52,0.12)]">
+                <div key={crop.id} className="group w-full min-w-0 rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_15px_35px_rgba(24,90,52,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_55px_rgba(24,90,52,0.12)]">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Coltura</p>
@@ -344,20 +344,20 @@ export default function DashboardPage() {
                     ) : null}
                   </div>
 
-                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-3xl bg-white p-4">
+                  <div className="mt-6 grid w-full gap-4 grid-cols-1 sm:grid-cols-2">
+                    <div className="rounded-3xl bg-white p-4 min-w-0">
                       <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Piante</p>
                       <p className="mt-2 text-2xl font-semibold text-slate-900">{crop.plants}</p>
                     </div>
-                    <div className="rounded-3xl bg-white p-4">
+                    <div className="rounded-3xl bg-white p-4 min-w-0">
                       <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Registrata</p>
                       <p className="mt-2 text-2xl font-semibold text-slate-900">{new Date(crop.created_at).toLocaleDateString('it-IT')}</p>
                     </div>
                   </div>
 
-                  <div className="mt-6 flex items-center justify-between gap-4">
-                    <span className="text-sm text-slate-500">ID: {crop.id.slice(0, 8)}</span>
-                    <Link href={`/dashboard/crops/${crop.id}`} className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20">
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-sm text-slate-500 break-words">ID: {crop.id.slice(0, 8)}</span>
+                    <Link href={`/dashboard/crops/${crop.id}`} className="rounded-full border border-olive/20 bg-olive/10 px-4 py-2 text-sm font-semibold text-olive transition hover:bg-olive/20 w-full sm:w-auto text-center">
                       Dettagli
                     </Link>
                   </div>
